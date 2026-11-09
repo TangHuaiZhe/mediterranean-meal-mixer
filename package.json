@@ -1,1 +1,1 @@
-{"name":"mediterranean-mixer","version":"1.0.0","private":true,"type":"module","scripts":{"build":"node build.mjs","typecheck":"tsc --noEmit","test":"node tests/engine.test.mjs"},"devDependencies":{"esbuild":"^0.25.0","typescript":"^5.9.0"}}
+{"name":"mediterranean-mixer","version":"1.0.0","private":true,"type":"module","scripts":{"build":"node build.mjs","typecheck":"tsc --noEmit","test":"node tests/engine.test.mjs && node tests/ai.test.mjs"},"devDependencies":{"esbuild":"^0.25.0","typescript":"^5.9.0"}}
