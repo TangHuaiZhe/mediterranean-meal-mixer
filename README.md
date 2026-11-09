@@ -47,7 +47,7 @@ GitHub Pages 是公开静态网站，**不能安全保存私人 DeepSeek 密钥*
 1. 在 [Supabase](https://supabase.com/dashboard) 创建项目。项目应启用邮箱登录，在 Auth → URL Configuration 中把 Site URL 设为 `https://tanghuaizhe.github.io/mediterranean-meal-mixer/`，并将该地址加入 Redirect URLs。邮件链接会返回这个页面。首次用邮箱登录会创建账户。
 2. 在项目 SQL Editor 中执行 `supabase/migrations/202611090001_recipe_favorites.sql`。表开启行级安全策略：已登录用户仅能读、加、删自己的收藏。不要关闭 RLS。
 3. 从项目设置获取 Project URL 和 **publishable key（公开发布密钥，`sb_publishable_` 开头）**，写入 `supabase.public.json`；也可用 `.env.example` 所示的 `PUBLIC_SUPABASE_URL` 和 `PUBLIC_SUPABASE_PUBLISHABLE_KEY` 环境变量覆盖。运行 `npm run typecheck && npm test && npm run build`，构建会把这两个公开值内嵌到静态 HTML。绝不要使用 `sb_secret_`、`service_role` 或 DeepSeek 密钥。提交更新后的 `docs/` 到发布分支。
-4. 用两个账户验证：各自添加、删除、重新登录并刷新；确认彼此看不到对方收藏。再断网添加一条收藏，恢复网络后按“同步收藏”确认上传。没有完成这项真实后端测试前，不应认为线上同步已验证。
+4. 用两个账户验证：各自添加、删除、重新登录并刷新；确认彼此看不到对方收藏。再断网添加一条收藏，恢复网络后按“同步收藏”确认上传。当前已用一个真实账户验证邮箱登录、刷新后会话恢复，以及两条收藏写入云端数据表；跨设备、双账户隔离与真实断网恢复仍待实测。匿名读表请求已确认返回 401。
 
 登录使用邮箱链接；认证会话由 Supabase 浏览器客户端保存。未登录时收藏保存在当前浏览器；首次登录会把这些收藏迁移到当前账户，随后清除匿名收藏，避免下次登录重复导入。离线 `file://` 页面不连接 Supabase，仍可本机收藏。DeepSeek 密钥不随账户保存或同步。
 
