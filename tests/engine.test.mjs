@@ -17,6 +17,10 @@ assert.equal(withBase(selected(presets[0].ids)).filter(i=>i.id==='olive').length
 const fourVeg=['broccoli','zucchini','tomato','redonion','chicken','oats','lemon','walnut'];
 assert.equal(validate(fourVeg),null);
 assert.match(makeRecipe(selected(fourVeg),1).steps[2],/分批/);
+assert(!makeRecipe(selected(presets[0].ids),1).steps[0].includes('红洋葱'));
+assert(!makeRecipe(selected(presets[0].ids),1).steps[2].includes('红洋葱'));
+assert(!makeRecipe(selected(presets[0].ids),1).steps[2].includes('茄子'));
+assert(makeRecipe(selected(fourVeg),1).steps[0].includes('红洋葱切丝'));
 assert.match(makeRecipe(selected(fourVeg),1).steps[1],/燕麦/);
 assert.match(validate(['broccoli','zucchini','tomato','redonion','pepper','chicken','oats','lemon']),/4–8|1–4/);
 assert.match(makeRecipe(selected(['tomato','shrimp','pasta','basil']),1).steps[4],/回锅/);
