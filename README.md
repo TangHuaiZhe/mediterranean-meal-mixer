@@ -10,7 +10,7 @@
 - 预设克数及编辑后的克数均指**每人份可食部分**。蔬菜与鱼禽按生重，豆类按无盐水煮熟重，意面、糙米、库斯库斯、燕麦、布格麦、藜麦按干重；面包、奶酪、橄榄按成品重。每项营养 = 来源每 100 g 数值 × 每人克数 ÷ 100；复合风味按所列组成食材的默认比例缩放后求和。购物清单再乘用餐人数。默认橄榄油每人 10 g，可在食材清单中调整。
 - 圣女果以葡萄番茄、彩椒以红甜椒、蘑菇以白蘑菇、白芸豆以普通白豆近似映射。品牌、品种、沥水程度及烹调损耗会造成差异；用户界面标明这些映射。生虾来源未列膳食纤维，去骨去皮生鸡腿肉来源也未列膳食纤维，按动物性食材 0 g 处理并标注假设。营养数字是**食材计算值，不是成品检测值**。
 - 成人默认每日参考值采用美国食品药品监督管理局的 [Daily Value（每日参考值）](https://www.fda.gov/food/nutrition-facts-label/daily-value-nutrition-and-supplement-facts-labels)：蛋白质 50 g、脂肪 78 g、碳水 275 g、纤维 28 g、钠 2300 mg；热量 2000 kcal 是一般示例。均可在界面修改。百分比 = 每份计算量 ÷ 设定参考值 × 100%。不提供个人医疗或临床营养建议。
-- 鱼虾中心 63℃、禽肉中心 74℃ 的食安提醒参照 [FoodSafety.gov（美国食品安全网）](https://www.foodsafety.gov/food-safety-charts/safe-minimum-internal-temperatures)。干豆类须先浸泡并彻底煮熟，参照 [爱尔兰食品安全局](https://www.fsai.ie/consumer-advice/food-safety-and-hygiene/advice-on-eating-legumes)。设备时间只是起点，应以中心温度和熟透程度为准。
+- 鱼中心 63℃、禽肉中心 74℃、虾仁煮至珍珠白且不透明的食安提醒参照 [FoodSafety.gov（美国食品安全网）](https://www.foodsafety.gov/food-safety-charts/safe-minimum-internal-temperatures)。干豆类须先浸泡并彻底煮熟，参照 [爱尔兰食品安全局](https://www.fsai.ie/consumer-advice/food-safety-and-hygiene/advice-on-eating-legumes)。设备时间只是起点，应以中心温度和熟透程度为准。
 
 
 ### 重新生成来源快照
@@ -31,5 +31,8 @@ python3 scripts/sync_fooddata.py --sr /path/to/FoodData_Central_sr_legacy_food_j
 `data.ts` 管食材映射和预设，`fooddata.ts` 管来源记录，`engine.ts` 管组合、克数、营养和菜谱规则，`main.ts` 管界面。插图为内嵌餐盘示意，不对应实际照片。
 
 ## 发布
+
+在线页面在 `<head>` 中按用户提供的项目编号 `zawq522qjf` 加载 Microsoft Clarity（网站使用分析）。仅当页面位于本仓库的 GitHub Pages 地址时才加载；双击打开的 `file://` 离线文件不会请求 Clarity，菜谱功能也不依赖它。页面底部说明了在线统计。
+
 
 `npm run build` 同时生成 `dist/地中海料理搭配器.html` 和 `docs/index.html`。GitHub Pages（GitHub 静态网站托管）从 `main` 分支的 `/docs` 发布。提交前执行 `npm run typecheck && npm test && npm run build`，并把 `docs/index.html` 一起提交。

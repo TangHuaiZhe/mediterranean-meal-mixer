@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import {readFile} from 'node:fs/promises';
+import {runInNewContext} from 'node:vm';
 const bundled=await build({entryPoints:['src/engine.ts','src/data.ts'],bundle:true,format:'esm',write:false,outdir:'x'});
 const modules={};for(const file of bundled.outputFiles){modules[file.path.endsWith('engine.js')?'engine':'data']=await import('data:text/javascript;base64,'+Buffer.from(file.contents).toString('base64'))}
 const {selected,withBase,validate,nutrition,mealType,makeRecipe,componentAmounts,weightRange}=modules.engine;const {presets,baseOil,ingredients,foodData}=modules.data;
@@ -58,4 +59,10 @@ assert(html.includes('plate-art'));
 assert(html.includes('food-search/?query='));
 assert(html.includes('source-section'));
 assert(html.includes('data-gram'));
+const clarityCode=html.match(/<script type="text\/javascript">([\s\S]*?)<\/script>/)?.[1];
+assert(clarityCode,'Clarity inline loader in head');
+function clarityRequests(location){const requests=[];const document={createElement:()=>({}),getElementsByTagName:()=>[{parentNode:{insertBefore:tag=>requests.push(tag.src)}}]};runInNewContext(clarityCode,{location,document,window:{}});return requests}
+assert.deepEqual(clarityRequests({protocol:'file:',hostname:'',pathname:'/tmp/地中海料理搭配器.html'}),[]);
+assert.deepEqual(clarityRequests({protocol:'https:',hostname:'tanghuaizhe.github.io',pathname:'/mediterranean-meal-mixer/'}),['https://www.clarity.ms/tag/zawq522qjf']);
+assert.deepEqual(clarityRequests({protocol:'https:',hostname:'example.com',pathname:'/mediterranean-meal-mixer/'}),[]);
 console.log(`通过：${presets.length} 个预设、组合限制、营养计算、设备指引、安全提示与单文件检查。`);
