@@ -20,17 +20,27 @@ const $=(selector:string)=>document.querySelector(selector) as HTMLElement;
 const fmt=(n:number,d=0)=>n.toFixed(d).replace(/\.0$/,'');
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 let activeUserId:string|null=null;
+let favoritePending=false,toastTimer=0;
+function showToast(message:string){const box=$('#toast');box.textContent=message;$('#save-status').textContent=message;box.classList.add('visible');clearTimeout(toastTimer);toastTimer=window.setTimeout(()=>box.classList.remove('visible'),4800)}
+function showFavoriteFeedback(message:string){const box=document.querySelector('#favorite-feedback');if(box)box.textContent=message}
+function currentFavorite():Favorite{return {ids:[...state.ids],grams:Object.fromEntries(withBase(selected(state.ids,state.grams),state.grams).map(i=>[i.id,i.grams]))}}
+function updateFavoriteButton(){const button=document.querySelector<HTMLButtonElement>('#favorite-btn');if(!button)return;const saved=state.favorites.some(f=>favoriteSignature(f)===favoriteSignature(currentFavorite()));button.textContent=saved?'★ 已收藏':'☆ 收藏组合';button.classList.toggle('saved',saved);button.setAttribute('aria-pressed',String(saved))}
+function openAccount(message='登录后可在设备间同步收藏。'){const dialog=$('#account-dialog') as HTMLDialogElement;$('#dialog-context').textContent=message;if(!dialog.open)dialog.showModal();(dialog.querySelector('#login-email') as HTMLInputElement|null)?.focus()}
+function closeAccount(){const dialog=$('#account-dialog') as HTMLDialogElement;if(dialog.open)dialog.close()}
 const safeStore={getItem:(key:string)=>{try{return localStorage.getItem(key)}catch{return null}},setItem:(key:string,value:string)=>{try{localStorage.setItem(key,value)}catch{}}};
 const sync=cloud?new FavoriteSync(
  {list:listCloudFavorites,add:saveCloudFavorite,delete:deleteCloudFavorite},
  safeStore,
  favorites=>{state.favorites=favorites;renderFavorites()},
- message=>{$('#account-status').textContent=message}
+ message=>{$('#account-status').textContent=message;if(favoritePending&&message!=='正在同步收藏…'){const result=message==='收藏已同步。'?'已加入收藏，并同步到账户。':'已加入收藏，暂时无法同步；联网后可重试。';showFavoriteFeedback(result);showToast(result);favoritePending=false}}
 ):null;
 function renderAccount(email=''){
  const box=$('#account');
- if(!cloud){box.innerHTML='<p class="helper">云端登录尚未配置。现在的收藏保存在本机；离线页面始终可用。</p>';return}
- if(activeUserId){box.innerHTML=`<p class="helper">已登录：<strong data-clarity-mask="true">${esc(email)}</strong></p><div class="account-actions"><button type="button" id="sync-favorites" class="secondary">同步收藏</button><button type="button" id="sign-out" class="text-btn">退出登录</button></div>`;return}
+ const trigger=$('#account-trigger'),label=$('#account-trigger-label');
+ trigger.classList.toggle('logged-in',!!activeUserId);
+ if(!cloud){label.textContent='本机模式';box.innerHTML='<p class="helper">当前离线页面仅在本机保存收藏。请打开在线网页登录并同步。</p>';return}
+ if(activeUserId){label.textContent='我的账户';box.innerHTML=`<p class="helper">已登录：<strong data-clarity-mask="true">${esc(email)}</strong></p><div class="account-actions"><button type="button" id="sync-favorites" class="secondary">同步收藏</button><button type="button" id="sign-out" class="text-btn">退出登录</button></div>`;return}
+ label.textContent='登录 / 注册';
  box.innerHTML='<p class="helper">用邮箱接收登录链接，登录后可在设备间同步收藏。首次登录会自动创建账户。</p><form id="login-form" class="login-form"><label for="login-email">邮箱地址</label><input id="login-email" type="email" autocomplete="email" required data-clarity-mask="true" placeholder="name@example.com"><button class="secondary" type="submit">发送登录链接</button></form>';
 }
 function persist(){try{localStorage.setItem(storageKey,JSON.stringify({targets:state.targets,grams:state.grams,favorites:anonymousFavorites}))}catch{$('#save-status').textContent='此浏览器未开放本地存储；本次会话仍可使用。'}}
@@ -59,22 +69,23 @@ function renderResult(items:ReturnType<typeof selected>,n:Nutrients,meal:ReturnT
  const shopping=items.map(i=>`<label class="shop-item"><input type="checkbox"><span>${i.name} · ${fmt(i.grams*state.servings,1)} g${componentText(i)?`（${componentText(i,state.servings)}）`:''}</span></label>`).join('');
  const sourceHtml=items.map(i=>`<article class="source-item"><strong>${i.name}</strong>${i.sourceNote?`<p>${i.sourceNote}</p>`:''}${i.components.map(c=>{const f=foodData[c.key];return `<div class="source-record"><span>${f.name}${i.components.length>1?` · 默认配比 ${c.baseGrams} g`:''}</span><a href="https://fdc.nal.usda.gov/food-search/?query=${f.fdcId}" target="_blank" rel="noopener">FDC 食品编号 ${f.fdcId}</a><small>${f.dataType==='Foundation Foods'?'基础食物数据':'传统参考数据'} · ${f.release} · ${f.description} · 能量项目 ${f.energyNutrientId} · 每 100 g：${f.nutrients.kcal} 千卡、蛋白质 ${f.nutrients.protein} g、脂肪 ${f.nutrients.fat} g、碳水 ${f.nutrients.carbs} g、纤维 ${f.nutrients.fiber} g、钠 ${f.nutrients.sodium} mg${f.assumption?`；${f.assumption}`:''}</small></div>`}).join('')}</article>`).join('');
  $('#result').innerHTML=`<div class="result-top"><div><div class="eyebrow">为你生成的一餐 / ${state.servings} 人份</div><h2>${title}</h2><p>${meal.label} · ${recipe.time}</p></div><div class="art-wrap">${icon()}<span>餐盘示意插图</span></div></div>
- <div class="result-actions"><button type="button" id="favorite-btn">☆ 收藏组合</button><button type="button" id="print-btn">↗ 打印菜谱</button><button type="button" id="reset-grams">恢复默认克数</button></div>
+ <div class="result-actions"><button type="button" id="favorite-btn" aria-pressed="false">☆ 收藏组合</button><button type="button" id="print-btn">↗ 打印菜谱</button><button type="button" id="reset-grams">恢复默认克数</button></div><p id="favorite-feedback" class="favorite-feedback"></p>
  <div class="result-grid"><div class="recipe-pane"><div class="section-heading"><h3>食材清单</h3><span>以下为 ${state.servings} 人份</span></div><ul class="ingredient-list">${list}</ul><div class="section-heading"><h3>开始烹调</h3><span>${aiResult?'AI 辅助步骤':'按顺序操作'}</span></div>${aiResult?'<p class="ai-notice">以下步骤由 DeepSeek 改写，请核对食材、火候和下方食安提示。<button type="button" id="restore-steps" class="text-btn">恢复本地步骤</button></p>':''}<ol class="steps">${(aiResult?.steps??recipe.steps).map(s=>`<li>${esc(s)}</li>`).join('')}</ol><div class="method-box"><h4>换用其他设备</h4>${recipe.pan?`<p><strong>平底锅：</strong>${recipe.pan}</p>`:''}<p><strong>蒸箱：</strong>${recipe.steam}出锅后拌入本餐橄榄油。</p><p><strong>空气炸锅：</strong>${recipe.airFryer}</p><p><strong>微波炉：</strong>${recipe.microwave}</p></div><div class="safety"><strong>食安提示</strong><p>${recipe.safety}</p></div></div>
  <aside class="nutrition-pane"><div class="section-heading"><h3>每份营养估算</h3><span>约值</span></div>${nutritionHtml}<p class="nutrition-note">按下方食品编号对应的每 100 g 数据和所填克数线性计算；复合风味按默认比例缩放。未计烹调损耗、额外盐油、品牌差异及近似品种映射误差。不是个体医疗或营养建议。</p><div class="meal-note"><strong>适合 ${meal.label}</strong><p>${meal.reason}</p></div></aside></div>
  <section class="shopping-section"><div class="section-heading"><h3>购物清单</h3><span>勾选仅在当前页面有效</span></div><div class="shop-list">${shopping}</div><button type="button" id="copy-list">复制购物清单</button></section><details class="source-section"><summary>查看每项食材的营养数据来源</summary><p>来源为美国农业部食品营养数据库的离线摘录。点击食品编号可在美国农业部网站按编号检索原始条目；复合风味按各组成食材加权。能量采用来源条目的 1008 或 2047 项。数值不是成品的实验室检测值。</p><div class="source-grid">${sourceHtml}</div></details>`;
- $('#favorite-btn')!.addEventListener('click',()=>{const snapshot:Favorite={ids:[...state.ids],grams:Object.fromEntries(items.map(i=>[i.id,i.grams]))};if(activeUserId&&sync){sync.add(snapshot)}else if(!state.favorites.some(f=>favoriteSignature(f)===favoriteSignature(snapshot))){anonymousFavorites.unshift(snapshot);anonymousFavorites.splice(100);state.favorites=[...anonymousFavorites];persist();renderFavorites()}$('#save-status').textContent='已收藏当前组合及克数。'});
+ updateFavoriteButton();
+ $('#favorite-btn')!.addEventListener('click',()=>{const snapshot=currentFavorite(),alreadySaved=state.favorites.some(f=>favoriteSignature(f)===favoriteSignature(snapshot));if(activeUserId&&sync){if(alreadySaved){showFavoriteFeedback('这个组合已经在收藏中。');showToast('这个组合已经在收藏中。');return}favoritePending=true;sync.add(snapshot);showFavoriteFeedback('已加入收藏，正在同步…');showToast('已加入收藏，正在同步…');return}if(!alreadySaved){anonymousFavorites.unshift(snapshot);anonymousFavorites.splice(100);state.favorites=[...anonymousFavorites];persist();renderFavorites()}const message=cloud?'已暂存于本机，登录后自动同步。':'已保存到本机收藏。';showFavoriteFeedback(message);showToast(message);if(cloud)openAccount('当前组合已暂存于本机。登录后会自动同步到你的账户。')});
  $('#print-btn')!.addEventListener('click',()=>window.print());
  $('#restore-steps')?.addEventListener('click',()=>{aiResult=null;render()});
  $('#reset-grams')!.addEventListener('click',()=>{state.grams={};persist();render()});
  $('#result').querySelectorAll<HTMLInputElement>('[data-gram]').forEach(input=>input.addEventListener('change',()=>{const id=input.dataset.gram!;const item=[...ingredients,baseOil].find(i=>i.id===id)!;const [min,max]=weightRange(item);const value=Number(input.value);if(!Number.isInteger(value)||value<min||value>max){input.value=String(state.grams[id]??item.grams);$('#save-status').textContent=`${item.name}每人克数需为 ${min}–${max} g 的整数。`;return}state.grams[id]=value;persist();render()}));
  $('#copy-list')!.addEventListener('click',async()=>{const value=items.map(i=>`${i.name} ${fmt(i.grams*state.servings,1)} g${componentText(i)?'（'+componentText(i,state.servings)+'）':''}`).join('\n');try{await navigator.clipboard.writeText(value);$('#save-status').textContent='购物清单已复制。'}catch{$('#save-status').textContent='浏览器未开放复制权限，可从清单中手动选择复制。'}});
 }
-function renderFavorites(){const box=$('#favorites');box.innerHTML=state.favorites.length?state.favorites.map((f,i)=>`<div class="favorite"><button type="button" data-favorite="${i}">${selected(f.ids).map(x=>x.name).join(' · ')}</button><button type="button" class="remove" data-remove="${i}" aria-label="删除这条收藏">×</button></div>`).join(''):'<p class="muted">还没有收藏的组合。</p>'}
+function renderFavorites(){const box=$('#favorites');box.innerHTML=state.favorites.length?state.favorites.map((f,i)=>`<div class="favorite"><button type="button" data-favorite="${i}">${selected(f.ids).map(x=>x.name).join(' · ')}</button><button type="button" class="remove" data-remove="${i}" aria-label="删除这条收藏">×</button></div>`).join(''):'<p class="muted">还没有收藏的组合。</p>';updateFavoriteButton()}
 function toggle(id:string){const i=ingredients.find(x=>x.id===id)!;if(state.ids.includes(id)){state.ids=state.ids.filter(x=>x!==id)}else{const same=selected(state.ids).filter(x=>x.group===i.group);if(['protein','grain','flavor'].includes(i.group)){state.ids=state.ids.filter(x=>!same.some(y=>y.id===x))}else if(i.group==='extra'&&same.length>=1){state.ids=state.ids.filter(x=>!same.some(y=>y.id===x))}state.ids.push(id)}render()}
 $('#groups').addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-id]');if(b)toggle(b.dataset.id!)});
 $('#presets').addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-preset]');if(b){state.ids=[...presets[Number(b.dataset.preset)].ids];state.grams={};persist();render();$('#result').scrollIntoView({behavior:'smooth',block:'start'})}});
-$('#favorites').addEventListener('click',e=>{const t=e.target as HTMLElement;const remove=t.closest<HTMLButtonElement>('[data-remove]');if(remove){const favorite=state.favorites[Number(remove.dataset.remove)];if(!favorite)return;if(activeUserId&&sync)sync.remove(favorite);else{anonymousFavorites.splice(Number(remove.dataset.remove),1);state.favorites=[...anonymousFavorites];persist();renderFavorites()}return}const b=t.closest<HTMLButtonElement>('[data-favorite]');if(b){const f=state.favorites[Number(b.dataset.favorite)];state.ids=[...f.ids];state.grams={...f.grams};persist();render()}});
+$('#favorites').addEventListener('click',e=>{const t=e.target as HTMLElement;const remove=t.closest<HTMLButtonElement>('[data-remove]');if(remove){const favorite=state.favorites[Number(remove.dataset.remove)];if(!favorite)return;if(activeUserId&&sync)sync.remove(favorite);else{anonymousFavorites.splice(Number(remove.dataset.remove),1);state.favorites=[...anonymousFavorites];persist();renderFavorites()}showToast('已从收藏移除。');return}const b=t.closest<HTMLButtonElement>('[data-favorite]');if(b){const f=state.favorites[Number(b.dataset.favorite)];state.ids=[...f.ids];state.grams={...f.grams};persist();render()}});
 $('#random').addEventListener('click',()=>{const p=presets[Math.floor(Math.random()*presets.length)];state.ids=[...p.ids];state.grams={};persist();render()});
 $('#reset').addEventListener('click',()=>{state.ids=[];state.servings=1;state.grams={};persist();render()});
 $('#generate').addEventListener('click',()=>{$('#result').scrollIntoView({behavior:'smooth',block:'start'})});
@@ -106,6 +117,9 @@ if(aiPage){
 }
 render();
 renderAccount();
+$('#account-trigger').addEventListener('click',()=>openAccount(activeUserId?'查看账户与同步状态。':'登录后可在设备间同步收藏。'));
+$('#close-account').addEventListener('click',closeAccount);
+$('#account-dialog').addEventListener('click',e=>{if(e.target===$('#account-dialog'))closeAccount()});
 $('#account').addEventListener('submit',async e=>{
  const form=(e.target as HTMLElement).closest<HTMLFormElement>('#login-form');if(!form)return;e.preventDefault();
  const email=(form.querySelector('#login-email') as HTMLInputElement).value.trim();
@@ -123,9 +137,10 @@ $('#account').addEventListener('click',async e=>{
 onSessionChange(session=>{
  const userId=session?.user.id??null;
  if(userId===activeUserId){renderAccount(session?.user.email??'');return}
+ const wasSignedIn=!!activeUserId;
  if(activeUserId)sync?.stop();
  activeUserId=userId;
- if(userId){renderAccount(session?.user.email??'');void sync?.start(userId,anonymousFavorites);if(anonymousFavorites.length){anonymousFavorites.splice(0);persist()}}
- else{state.favorites=[...anonymousFavorites];renderFavorites();renderAccount();$('#account-status').textContent='已退出，当前显示本机收藏。'}
+ if(userId){renderAccount(session?.user.email??'');closeAccount();void sync?.start(userId,anonymousFavorites);if(anonymousFavorites.length){anonymousFavorites.splice(0);persist()}}
+ else{state.favorites=[...anonymousFavorites];renderFavorites();renderAccount();$('#account-status').textContent=wasSignedIn?'已退出，当前显示本机收藏。':'';if(wasSignedIn)showToast('已退出登录，当前显示本机收藏。')}
 });
 window.addEventListener('online',()=>{if(activeUserId)void sync?.sync()});
