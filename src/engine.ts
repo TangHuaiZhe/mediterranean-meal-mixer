@@ -1,7 +1,9 @@
 import { ingredients, baseOil, type Ingredient, type Nutrients } from './data';
 export const byId=new Map(ingredients.map(i=>[i.id,i]));
-export function selected(ids:string[]):Ingredient[]{return ids.map(id=>byId.get(id)).filter((x):x is Ingredient=>!!x)}
-export function withBase(items:Ingredient[]):Ingredient[]{return [...items,baseOil]}
+export function selected(ids:string[],grams:Record<string,number>={}):Ingredient[]{return ids.map(id=>byId.get(id)).filter((x):x is Ingredient=>!!x).map(i=>({...i,grams:grams[i.id]??i.grams}))}
+export function withBase(items:Ingredient[],grams:Record<string,number>={}):Ingredient[]{return [...items,{...baseOil,grams:grams.olive??baseOil.grams}]}
+export function componentAmounts(item:Ingredient){return item.components.map(c=>({key:c.key,grams:item.grams*c.baseGrams/item.components.reduce((sum,x)=>sum+x.baseGrams,0)}))}
+export function weightRange(item:Ingredient):[number,number]{return item.id==='olive'?[1,40]:item.group==='veg'?[10,400]:item.group==='protein'?[30,400]:item.group==='grain'?[10,200]:item.group==='flavor'?[1,120]:[1,100]}
 export function validate(ids:string[]):string | null {
   const items=selected(ids), counts=(group:string)=>items.filter(i=>i.group===group).length;
   if(items.length<4||items.length>8)return '请选择 4–8 种元素。';
@@ -25,11 +27,12 @@ export function mealType(n:Nutrients,items:Ingredient[]):{label:string;reason:st
  if(n.kcal>=650)return {label:'午餐或晚餐',reason:'谷物与蛋白质的份量较完整，适合作为主餐；按当天活动量调整主食。'};
  return {label:'午餐或晚餐',reason:'含蔬菜、蛋白质和全谷主食，结构适合一顿正餐。'};
 }
-export function makeRecipe(items:Ingredient[], servings:number){
+export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=baseOil){
  const p=items.find(i=>i.group==='protein')!,grain=items.find(i=>i.group==='grain')!,flavor=items.find(i=>i.group==='flavor')!;
  const veg=items.filter(i=>i.group==='veg'),extras=items.filter(i=>i.group==='extra');
- const oilGrams=baseOil.grams*servings;
- const prep=`洗净并沥干 ${veg.map(i=>i.name).join('、')}；${veg.some(i=>i.id==='redonion')?'红洋葱切丝，其余蔬菜':'蔬菜'}切成约 2 cm 块。${p.id==='chickpea'||p.id==='whitebean'?'豆类使用已彻底煮熟、沥干的成品。':'生鲜蛋白质单独处理，生熟器具分开。'}`;
+ const oilGrams=oil.grams*servings;
+ const cut=veg.some(i=>i.id==='redonion')?(veg.length>1?'红洋葱切丝，其余蔬菜切成约 2 cm 块。':'红洋葱切丝。'):'蔬菜切成约 2 cm 块。';
+ const prep=`洗净并沥干 ${veg.map(i=>i.name).join('、')}；${cut}${p.id==='chickpea'||p.id==='whitebean'?'豆类使用已彻底煮熟、沥干的成品。':'生鲜蛋白质单独处理，生熟器具分开。'}`;
  const grainSteps:Record<string,string>={
   oats:'燕麦片加约 3 倍重量的水，小锅煮约 5–8 分钟并搅拌，至软稠；做成咸口燕麦底。',
   bulgur:'布格麦加约 2 倍重量的沸水，加盖焖约 12–15 分钟，拨松并确认软熟。',
@@ -39,7 +42,7 @@ export function makeRecipe(items:Ingredient[], servings:number){
   couscous:'库斯库斯加等体积沸水，盖住焖 5–7 分钟后用叉拨松。',
   bread:'全麦面包放入平底锅小火烘约 2–4 分钟，翻面至微脆。'
  };
- const vegStep=`平底锅加入 ${oilGrams} g 橄榄油（${baseOil.grams} g/人，已计入营养），中火加热；${veg.some(i=>i.id==='eggplant')?'先下茄子炒约 3 分钟，再下其他蔬菜；':''}${veg.some(i=>i.id==='redonion')?'红洋葱与其他蔬菜一起下锅；':''}翻炒约 8–12 分钟至熟软。${veg.some(i=>i.id==='broccoli')?'西兰花可先焯水约 2 分钟再下锅。':''}${veg.length>=3?'蔬菜较多，分批炒熟后合并，避免锅中堆叠。':''}`;
+ const vegStep=`平底锅加入 ${oilGrams} g 橄榄油（${oil.grams} g/人，已计入营养），中火加热；${veg.some(i=>i.id==='eggplant')?'先下茄子炒约 3 分钟，再下其他蔬菜；':''}${veg.some(i=>i.id==='redonion')?(veg.length>1?'红洋葱与其他蔬菜一起下锅；':'红洋葱下锅；'):''}翻炒约 8–12 分钟至熟软。${veg.some(i=>i.id==='broccoli')?'西兰花可先焯水约 2 分钟再下锅。':''}${veg.length>=3?'蔬菜较多，分批炒熟后合并，避免锅中堆叠。':''}`;
  const proteinSteps:Record<string,string>={
   salmon:'把蔬菜盛出；三文鱼用同一平底锅中火两面各煎约 3–5 分钟，厚度不同需调整，最厚处中心达到 63℃。',
   chicken:'把蔬菜盛出；鸡腿肉摊平，用同一平底锅中火每面约 6–8 分钟，最厚处中心达到 74℃。',
@@ -47,7 +50,7 @@ export function makeRecipe(items:Ingredient[], servings:number){
   chickpea:'把熟鹰嘴豆加入炒好的蔬菜中，翻炒约 2–3 分钟至热透。',
   whitebean:'把熟白芸豆加入炒好的蔬菜中，翻炒约 2–3 分钟至热透。'
  };
- const sauce=flavor.id==='yogurt'?'酸奶蒜香酱保持冷藏，装盘后再淋，不与生肉接触。':`${flavor.note||flavor.name} 在关火后拌入；鲜香草和柠檬汁后加更合适。`;
+ const sauce=flavor.id==='yogurt'?'酸奶蒜香酱保持冷藏，装盘后再淋，不与生肉接触。':`${flavor.name}在关火后拌入；鲜香草和柠檬汁后加更合适。`;
  const extra=extras.length?`最后加入${extras.map(i=>i.name).join('、')}。`:'';
  const finish=grain.id==='pasta'?'将意面、蔬菜和蛋白质回锅，按需要加少量预留面汤拌匀。':'把主食、蔬菜和蛋白质装盘。';
  const steps=[prep,grainSteps[grain.id],vegStep,proteinSteps[p.id],`${finish}${sauce}${extra} 即可食用。`];
