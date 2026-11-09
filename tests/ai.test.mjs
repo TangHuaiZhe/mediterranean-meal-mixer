@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { readFile } from 'node:fs/promises';
-import { runInNewContext } from 'node:vm';
+import { runInNewContext, Script } from 'node:vm';
 
 const bundle = await build({ entryPoints: ['src/ai.ts', 'src/data.ts'], bundle: true, format: 'esm', write: false, outdir: 'x' });
 const modules = {};
@@ -22,6 +22,9 @@ assert.throws(() => parseAiSteps({ choices: [{ finish_reason: 'stop', message: {
 assert.throws(() => parseAiSteps({ choices: [{ finish_reason: 'length', message: { content: '{}' } }] }, items), /截断/);
 const publicHtml = await readFile('docs/index.html', 'utf8');
 const aiHtml = await readFile('docs/ai.html', 'utf8');
+const bundledScript = publicHtml.match(/<\/style><\/head><body>[\s\S]*<script>([\s\S]*?)<\/script><\/body><\/html>/)?.[1];
+assert(bundledScript, 'single-file script exists');
+new Script(bundledScript, { filename: 'docs/index.html' });
 assert(publicHtml.includes('zawq522qjf'));
 const clarityScript = publicHtml.match(/<!-- clarity:start --><script[^>]*>([\s\S]*?)<\/script><!-- clarity:end -->/)?.[1];
 assert(clarityScript);

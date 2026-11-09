@@ -14,6 +14,6 @@ const result=await build({entryPoints:[new URL('./src/main.ts',dir).pathname],bu
 let html=await readFile(new URL('./index.html',dir),'utf8');
 const js=result.outputFiles.find(f=>f.path.endsWith('.js'))?.text;const css=await readFile(new URL('./src/style.css',dir),'utf8');
 if(!js||!css)throw Error('Build output incomplete');
-html=html.replace('</head>',`<style>${css}</style></head>`).replace('</body>',`<script>${js}</script></body>`);
+html=html.replace('</head>',()=>`<style>${css}</style></head>`).replace('</body>',()=>`<script>${js}</script></body>`);
 await writeFile(new URL('./dist/地中海料理搭配器.html',dir),html);
 const docs=new URL('./docs/',dir);await mkdir(docs,{recursive:true});await writeFile(new URL('./docs/index.html',dir),html);await writeFile(new URL('./docs/ai.html',dir),html.replace(/<!-- clarity:start -->[\s\S]*?<!-- clarity:end -->/,'').replace('普通在线版使用 Microsoft Clarity（网站使用分析）；独立的 AI 页面和离线文件不加载统计脚本。','此 AI 页面不加载网站使用分析；密钥不会保存在页面文件中。'));await writeFile(new URL('./docs/.nojekyll',dir),'');
