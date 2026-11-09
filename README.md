@@ -26,9 +26,9 @@ python3 scripts/sync_fooddata.py --sr /path/to/FoodData_Central_sr_legacy_food_j
 
 ## 操作与结构
 
-每餐至少选 1 种蔬菜，蛋白质、主食、风味和配料均可不选，也各最多选 1 种。蔬菜不设数量上限，纯烤蔬菜会生成独立配菜菜谱，多种蔬菜会优先生成烤箱菜谱。鸡蛋已列入蛋白质选项。橄榄油是基础用油，不占自选数量。点击菜谱食材清单中的数字可编辑每人克数；总量、营养、复合风味配比、橄榄油用量和购物清单同步更新。克数限制由 `engine.ts` 定义，防止误输入。收藏会保存组合及克数；旧版仅含食材编号的收藏会按默认克数迁移。本地存储不可用时页面仍可使用。
+每餐至少选 1 种蔬菜，蛋白质、主食、风味和配料均可不选，也各最多选 1 种。蔬菜不设数量上限，纯烤蔬菜会生成独立配菜菜谱，多种蔬菜会优先生成烤箱菜谱。鸡蛋已列入蛋白质选项。橄榄油是基础用油，不占自选数量。点击菜谱食材清单中的数字可编辑每人克数；总量、营养、复合风味配比、橄榄油用量和购物清单同步更新。克数限制由 `engine.ts` 定义，防止误输入。收藏会保存组合及克数；旧版仅含食材编号的收藏会按默认克数迁移。本地存储不可用时页面仍可使用。登录后收藏按账户同步；离线单文件继续使用本机收藏。
 
-`data.ts` 管食材映射和预设，`fooddata.ts` 管来源记录，`engine.ts` 管组合、克数、营养和菜谱规则，`main.ts` 管界面。插图为内嵌餐盘示意，不对应实际照片。
+`data.ts` 管食材映射和预设，`fooddata.ts` 管来源记录，`engine.ts` 管组合、克数、营养和菜谱规则，`favorites.ts` 管收藏格式，`favorite-sync.ts` 管本机队列及云端同步，`cloud.ts` 管身份验证与数据库调用，`main.ts` 管界面。插图为内嵌餐盘示意，不对应实际照片。
 
 烹调步骤会写出实际所选蔬菜及总克数，并按需要先焯西兰花、分段炒制或分段入烤箱。设备时间仍是参考值；用户应以实际熟度和食安提示为准。
 
@@ -39,6 +39,17 @@ python3 scripts/sync_fooddata.py --sr /path/to/FoodData_Central_sr_legacy_food_j
 GitHub Pages 是公开静态网站，**不能安全保存私人 DeepSeek 密钥**。本项目没有把密钥写入源码、HTML、部署设置或 GitHub Pages；不会让访客共同消耗站长的额度。使用者在独立的 `ai.html` 页面临时输入**自己的**密钥，浏览器直接请求 DeepSeek；密钥不进入网址、收藏或本地存储，提交后输入框立即清空。该页面不加载 Microsoft Clarity（网站使用分析）脚本。浏览器和扩展仍可看到自身发出的请求，故不应把此方式当作服务器端保密。
 
 模型使用 `deepseek-flash`，关闭思考模式，每次最多输出 900 个 token。按钮需手动点击；每页最多调用 3 次，但刷新即可重置，**这不是账户级预算控制**。若要让大众免费使用、同时由站长付费，需增加有身份验证、服务端保存密钥并设置真实速率和预算限制的后端；单靠 GitHub Pages 做不到。浏览器跨域许可取决于 DeepSeek 接口当前配置，若发生变化，AI 请求会报错，本地步骤仍可用。不要把真实密钥提交进仓库或贴在聊天中。
+
+## 登录与收藏同步
+
+项目已连接 Supabase，公开项目配置位于 `supabase.public.json`。这里的发布密钥本来就会出现在网页中；服务端密钥绝不能写入此文件。已在项目中执行收藏表迁移，并确认匿名请求没有读表权限。要在新项目复现：
+
+1. 在 [Supabase](https://supabase.com/dashboard) 创建项目。项目应启用邮箱登录，在 Auth → URL Configuration 中把 Site URL 设为 `https://tanghuaizhe.github.io/mediterranean-meal-mixer/`，并将该地址加入 Redirect URLs。邮件链接会返回这个页面。首次用邮箱登录会创建账户。
+2. 在项目 SQL Editor 中执行 `supabase/migrations/202611090001_recipe_favorites.sql`。表开启行级安全策略：已登录用户仅能读、加、删自己的收藏。不要关闭 RLS。
+3. 从项目设置获取 Project URL 和 **publishable key（公开发布密钥，`sb_publishable_` 开头）**，写入 `supabase.public.json`；也可用 `.env.example` 所示的 `PUBLIC_SUPABASE_URL` 和 `PUBLIC_SUPABASE_PUBLISHABLE_KEY` 环境变量覆盖。运行 `npm run typecheck && npm test && npm run build`，构建会把这两个公开值内嵌到静态 HTML。绝不要使用 `sb_secret_`、`service_role` 或 DeepSeek 密钥。提交更新后的 `docs/` 到发布分支。
+4. 用两个账户验证：各自添加、删除、重新登录并刷新；确认彼此看不到对方收藏。再断网添加一条收藏，恢复网络后按“同步收藏”确认上传。没有完成这项真实后端测试前，不应认为线上同步已验证。
+
+登录使用邮箱链接；认证会话由 Supabase 浏览器客户端保存。未登录时收藏保存在当前浏览器；首次登录会把这些收藏迁移到当前账户，随后清除匿名收藏，避免下次登录重复导入。离线 `file://` 页面不连接 Supabase，仍可本机收藏。DeepSeek 密钥不随账户保存或同步。
 
 ## 发布
 

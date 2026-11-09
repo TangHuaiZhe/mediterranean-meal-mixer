@@ -1,7 +1,16 @@
 import {build} from 'esbuild';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 const dir=new URL('./',import.meta.url);const out=new URL('./dist/',dir);await mkdir(out,{recursive:true});
-const result=await build({entryPoints:[new URL('./src/main.ts',dir).pathname],bundle:true,format:'iife',outfile:'bundle.js',write:false,minify:true,loader:{'.css':'css'}});
+const publicConfig=JSON.parse(await readFile(new URL('./supabase.public.json',dir),'utf8'));
+const supabaseUrl=process.env.PUBLIC_SUPABASE_URL??publicConfig.url??'';
+const supabaseKey=process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY??publicConfig.publishableKey??'';
+if(Boolean(supabaseUrl)!==Boolean(supabaseKey))throw Error('Supabase URL 和公开发布密钥必须同时设置。');
+if(supabaseUrl){
+  const url=new URL(supabaseUrl);
+  if(url.protocol!=='https:'||!url.hostname.endsWith('.supabase.co')||url.username||url.password||url.pathname!=='/')throw Error('Supabase URL 格式无效。');
+  if(!supabaseKey.startsWith('sb_publishable_'))throw Error('只允许新的 Supabase 公开发布密钥；禁止使用私钥或 service_role。');
+}
+const result=await build({entryPoints:[new URL('./src/main.ts',dir).pathname],bundle:true,format:'iife',outfile:'bundle.js',write:false,minify:true,loader:{'.css':'css'},define:{__SUPABASE_URL__:JSON.stringify(supabaseUrl),__SUPABASE_PUBLISHABLE_KEY__:JSON.stringify(supabaseKey)}});
 let html=await readFile(new URL('./index.html',dir),'utf8');
 const js=result.outputFiles.find(f=>f.path.endsWith('.js'))?.text;const css=await readFile(new URL('./src/style.css',dir),'utf8');
 if(!js||!css)throw Error('Build output incomplete');
