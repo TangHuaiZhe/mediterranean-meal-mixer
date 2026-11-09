@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+const dir=new URL('./',import.meta.url);const out=new URL('./dist/',dir);await mkdir(out,{recursive:true});
+const result=await build({entryPoints:[new URL('./src/main.ts',dir).pathname],bundle:true,format:'iife',outfile:'bundle.js',write:false,minify:true,loader:{'.css':'css'}});
+let html=await readFile(new URL('./index.html',dir),'utf8');
+const js=result.outputFiles.find(f=>f.path.endsWith('.js'))?.text;const css=await readFile(new URL('./src/style.css',dir),'utf8');
+if(!js||!css)throw Error('Build output incomplete');
+html=html.replace('</head>',`<style>${css}</style></head>`).replace('</body>',`<script>${js}</script></body>`);
+await writeFile(new URL('./dist/地中海料理搭配器.html',dir),html);
+const docs=new URL('./docs/',dir);await mkdir(docs,{recursive:true});await writeFile(new URL('./docs/index.html',dir),html);await writeFile(new URL('./docs/.nojekyll',dir),'');
