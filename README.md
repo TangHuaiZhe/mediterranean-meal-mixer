@@ -40,13 +40,13 @@ GitHub Pages 是公开静态网站，**不能安全保存私人 DeepSeek 密钥*
 
 模型使用 `deepseek-flash`，关闭思考模式，每次最多输出 900 个 token。按钮需手动点击；每页最多调用 3 次，但刷新即可重置，**这不是账户级预算控制**。若要让大众免费使用、同时由站长付费，需增加有身份验证、服务端保存密钥并设置真实速率和预算限制的后端；单靠 GitHub Pages 做不到。浏览器跨域许可取决于 DeepSeek 接口当前配置，若发生变化，AI 请求会报错，本地步骤仍可用。不要把真实密钥提交进仓库或贴在聊天中。
 
-## 登录与收藏同步（需要新建 Supabase 项目）
+## 登录与收藏同步
 
-目前仓库尚未配置后端，在线页面会如实显示“云端登录尚未配置”。食谱、AI 自带密钥入口和本机收藏正常工作。要启用登录：
+项目已连接 Supabase，公开项目配置位于 `supabase.public.json`。这里的发布密钥本来就会出现在网页中；服务端密钥绝不能写入此文件。已在项目中执行收藏表迁移，并确认匿名请求没有读表权限。要在新项目复现：
 
 1. 在 [Supabase](https://supabase.com/dashboard) 创建项目。项目应启用邮箱登录，在 Auth → URL Configuration 中把 Site URL 设为 `https://tanghuaizhe.github.io/mediterranean-meal-mixer/`，并将该地址加入 Redirect URLs。邮件链接会返回这个页面。首次用邮箱登录会创建账户。
 2. 在项目 SQL Editor 中执行 `supabase/migrations/202611090001_recipe_favorites.sql`。表开启行级安全策略：已登录用户仅能读、加、删自己的收藏。不要关闭 RLS。
-3. 从项目设置获取 Project URL 和 **publishable key（公开发布密钥，`sb_publishable_` 开头）**。参照 `.env.example` 设置 `PUBLIC_SUPABASE_URL` 和 `PUBLIC_SUPABASE_PUBLISHABLE_KEY` 环境变量，然后运行 `npm run typecheck && npm test && npm run build`。构建会把这两个公开值内嵌到静态 HTML；绝不要使用 `sb_secret_`、`service_role` 或 DeepSeek 密钥。提交更新后的 `docs/` 到发布分支。
+3. 从项目设置获取 Project URL 和 **publishable key（公开发布密钥，`sb_publishable_` 开头）**，写入 `supabase.public.json`；也可用 `.env.example` 所示的 `PUBLIC_SUPABASE_URL` 和 `PUBLIC_SUPABASE_PUBLISHABLE_KEY` 环境变量覆盖。运行 `npm run typecheck && npm test && npm run build`，构建会把这两个公开值内嵌到静态 HTML。绝不要使用 `sb_secret_`、`service_role` 或 DeepSeek 密钥。提交更新后的 `docs/` 到发布分支。
 4. 用两个账户验证：各自添加、删除、重新登录并刷新；确认彼此看不到对方收藏。再断网添加一条收藏，恢复网络后按“同步收藏”确认上传。没有完成这项真实后端测试前，不应认为线上同步已验证。
 
 登录使用邮箱链接；认证会话由 Supabase 浏览器客户端保存。未登录时收藏保存在当前浏览器；首次登录会把这些收藏迁移到当前账户，随后清除匿名收藏，避免下次登录重复导入。离线 `file://` 页面不连接 Supabase，仍可本机收藏。DeepSeek 密钥不随账户保存或同步。

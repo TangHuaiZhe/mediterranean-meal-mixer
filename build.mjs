@@ -1,8 +1,9 @@
 import {build} from 'esbuild';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 const dir=new URL('./',import.meta.url);const out=new URL('./dist/',dir);await mkdir(out,{recursive:true});
-const supabaseUrl=process.env.PUBLIC_SUPABASE_URL||'';
-const supabaseKey=process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY||'';
+const publicConfig=JSON.parse(await readFile(new URL('./supabase.public.json',dir),'utf8'));
+const supabaseUrl=process.env.PUBLIC_SUPABASE_URL??publicConfig.url??'';
+const supabaseKey=process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY??publicConfig.publishableKey??'';
 if(Boolean(supabaseUrl)!==Boolean(supabaseKey))throw Error('Supabase URL 和公开发布密钥必须同时设置。');
 if(supabaseUrl){
   const url=new URL(supabaseUrl);
