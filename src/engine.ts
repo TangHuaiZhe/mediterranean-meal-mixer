@@ -51,7 +51,7 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
  const proteinSteps:Record<string,string>={
   salmon:'把蔬菜盛出；三文鱼用同一平底锅中火两面各煎约 3–5 分钟，厚度不同需调整，最厚处中心达到 63℃。',
   chicken:'把蔬菜盛出；鸡腿肉摊平，用同一平底锅中火每面约 6–8 分钟，最厚处中心达到 74℃。',
-  shrimp:'把蔬菜盛出；虾仁用同一平底锅中火翻炒约 3–5 分钟，中心达到 63℃。',
+  shrimp:'把蔬菜盛出；虾仁用同一平底锅中火翻炒约 3–5 分钟，至肉质呈珍珠白且不透明。',
   chickpea:'把熟鹰嘴豆加入炒好的蔬菜中，翻炒约 2–3 分钟至热透。',
   whitebean:'把熟白芸豆加入炒好的蔬菜中，翻炒约 2–3 分钟至热透。',
   egg:'鸡蛋打散后倒入平底锅，中小火翻炒至蛋液完全凝固；生熟器具分开。'
@@ -59,7 +59,7 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
  const roastedProteinSteps:Record<string,string>={
   salmon:'蔬菜烤制时，三文鱼另用平底锅中火两面各煎约 3–5 分钟；最厚处中心达到 63℃。',
   chicken:'蔬菜烤制时，鸡腿肉另用平底锅中火每面约 6–8 分钟；最厚处中心达到 74℃。',
-  shrimp:'蔬菜烤制时，虾仁另用平底锅中火翻炒约 3–5 分钟；中心达到 63℃。',
+  shrimp:'蔬菜烤制时，虾仁另用平底锅中火翻炒约 3–5 分钟；至肉质呈珍珠白且不透明。',
   chickpea:'蔬菜烤熟后拌入已煮熟的鹰嘴豆，回炉约 3–5 分钟至热透。',
   whitebean:'蔬菜烤熟后拌入已煮熟的白芸豆，回炉约 3–5 分钟至热透。',
   egg:'蔬菜烤制时，鸡蛋另在平底锅中小火炒至蛋液完全凝固；生熟器具分开。'
@@ -68,10 +68,10 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
  const extra=extras.length?`最后加入${extras.map(i=>i.name).join('、')}。`:'';
  const finish=grain.id==='pasta'?'将意面、蔬菜和蛋白质回锅，按需要加少量预留面汤拌匀。':'把主食、蔬菜和蛋白质装盘。';
  const steps=[prep,grainSteps[grain.id],roastMode?ovenVegStep:vegStep,roastMode?roastedProteinSteps[p.id]:proteinSteps[p.id],`${finish}${sauce}${extra} 即可食用。`];
- const steam=p.id==='chicken'?'鸡腿肉 100℃ 蒸约 18–25 分钟，中心 74℃；蔬菜另蒸 6–10 分钟。':p.id==='salmon'?'鱼 100℃ 蒸约 8–12 分钟，中心 63℃；蔬菜另蒸 6–10 分钟。':p.id==='shrimp'?'虾仁 100℃ 蒸约 5–8 分钟，中心 63℃；蔬菜另蒸 6–10 分钟。':p.id==='egg'?'鸡蛋可在耐热容器中以 100℃ 蒸至完全凝固，蛋料理中心达到 71℃；蔬菜另蒸 6–10 分钟。':'熟豆类与蔬菜 100℃ 蒸约 6–10 分钟，至热透。';
+ const steam=p.id==='chicken'?'鸡腿肉 100℃ 蒸约 18–25 分钟，中心 74℃；蔬菜另蒸 6–10 分钟。':p.id==='salmon'?'鱼 100℃ 蒸约 8–12 分钟，中心 63℃；蔬菜另蒸 6–10 分钟。':p.id==='shrimp'?'虾仁 100℃ 蒸约 5–8 分钟，至肉质呈珍珠白且不透明；蔬菜另蒸 6–10 分钟。':p.id==='egg'?'鸡蛋可在耐热容器中以 100℃ 蒸至完全凝固，蛋料理中心达到 71℃；蔬菜另蒸 6–10 分钟。':'熟豆类与蔬菜 100℃ 蒸约 6–10 分钟，至热透。';
  const pan=roastMode?`蔬菜分批按平底锅步骤翻炒：${vegStep}${proteinSteps[p.id]}`:undefined;
- const airFryer=`蔬菜拌入 ${oilGrams} g 橄榄油，空气炸锅 180℃ 约 10–15 分钟，中途翻动；蔬菜多时分批。${p.id==='chicken'?'鸡腿肉另以 180℃ 约 16–22 分钟，中途翻面，中心 74℃。':p.id==='salmon'?'三文鱼另以 180℃ 约 10–14 分钟，中心 63℃。':p.id==='shrimp'?'虾仁另以 180℃ 约 6–9 分钟，中心 63℃。':p.id==='egg'?'鸡蛋另用平底锅炒至完全凝固。':'熟豆类在蔬菜出锅后拌入并加热至热透。'}主食仍按上方锅煮步骤准备。`;
+ const airFryer=`蔬菜拌入 ${oilGrams} g 橄榄油，空气炸锅 180℃ 约 10–15 分钟，中途翻动；蔬菜多时分批。${p.id==='chicken'?'鸡腿肉另以 180℃ 约 16–22 分钟，中途翻面，中心 74℃。':p.id==='salmon'?'三文鱼另以 180℃ 约 10–14 分钟，中心 63℃。':p.id==='shrimp'?'虾仁另以 180℃ 约 6–9 分钟，至肉质呈珍珠白且不透明。':p.id==='egg'?'鸡蛋另用平底锅炒至完全凝固。':'熟豆类在蔬菜出锅后拌入并加热至热透。'}主食仍按上方锅煮步骤准备。`;
  const microwave=p.id==='chicken'||p.id==='salmon'||p.id==='shrimp'||p.id==='egg'?'微波炉更适合加热蔬菜和已煮熟主食：加盖留缝，以约 800 W 加热 2–4 分钟，中途翻拌；生鲜鱼禽和鸡蛋建议按锅或蒸箱方案烹调并确认熟透。加热后拌入本餐橄榄油。':'熟豆类、蔬菜和已煮熟主食加盖留缝，以约 800 W 加热 2–4 分钟，中途翻拌，静置 1 分钟并确认热透；加热后拌入本餐橄榄油。';
- const safety=p.id==='chicken'?'鸡肉中心须达到 74℃，用食物温度计测最厚处；生熟器具分开。':p.id==='salmon'||p.id==='shrimp'?'鱼或虾中心达到 63℃，用食物温度计确认；生熟器具分开。':p.id==='egg'?'整蛋应煮至蛋黄与蛋白凝固；炒蛋、烤蛋等蛋料理中心达到 71℃。生熟器具分开。':'若从干鹰嘴豆或干芸豆开始，先按包装浸泡，换水后彻底煮熟；此处克数按熟豆计，不能把浸泡当作煮熟。';
+ const safety=p.id==='chicken'?'鸡肉中心须达到 74℃，用食物温度计测最厚处；生熟器具分开。':p.id==='salmon'?'鱼中心达到 63℃，用食物温度计确认；生熟器具分开。':p.id==='shrimp'?'虾仁煮至肉质呈珍珠白且不透明；生熟器具分开。':p.id==='egg'?'整蛋应煮至蛋黄与蛋白凝固；炒蛋、烤蛋等蛋料理中心达到 71℃。生熟器具分开。':'若从干鹰嘴豆或干芸豆开始，先按包装浸泡，换水后彻底煮熟；此处克数按熟豆计，不能把浸泡当作煮熟。';
  return {steps,steam,pan,airFryer,microwave,safety,time:grain.id==='rice'?'约 45–55 分钟':roastMode||p.id==='chicken'?'约 35–45 分钟':'约 25–35 分钟',servings};
 }
