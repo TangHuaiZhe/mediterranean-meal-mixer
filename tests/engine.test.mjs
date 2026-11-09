@@ -4,10 +4,10 @@ import {readFile} from 'node:fs/promises';
 const bundled=await build({entryPoints:['src/engine.ts','src/data.ts'],bundle:true,format:'esm',write:false,outdir:'x'});
 const modules={};for(const file of bundled.outputFiles){modules[file.path.endsWith('engine.js')?'engine':'data']=await import('data:text/javascript;base64,'+Buffer.from(file.contents).toString('base64'))}
 const {selected,withBase,validate,nutrition,makeRecipe,componentAmounts,weightRange}=modules.engine;const {presets,baseOil,ingredients,foodData}=modules.data;
-for(const preset of presets){assert.equal(validate(preset.ids),null,preset.name);const items=selected(preset.ids);assert.equal(items.length,5);const n=nutrition(withBase(items));assert(n.kcal>300&&n.kcal<1000,preset.name);assert(n.protein>10,preset.name);assert(n.fiber>2,preset.name);const r=makeRecipe(items,1);assert.equal(r.steps.length,5);assert(r.steam.includes('100℃'));assert(r.microwave.includes('800 W'));assert(r.airFryer.includes('180℃'));assert(r.steps[2].includes('平底锅'))}
+for(const preset of presets){assert.equal(validate(preset.ids),null,preset.name);const items=selected(preset.ids);assert(items.length>=5);const n=nutrition(withBase(items));assert(n.kcal>300&&n.kcal<1000,preset.name);assert(n.protein>10,preset.name);assert(n.fiber>2,preset.name);const r=makeRecipe(items,1);assert.equal(r.steps.length,5);assert(r.steam.includes('100℃'));assert(r.microwave.includes('800 W'));assert(r.airFryer.includes('180℃'));assert(/平底锅|烤箱/.test(r.steps[2]))}
 assert.match(validate(['salmon','rice','yogurt','tomato']),/酸奶/);
 assert.match(validate(['shrimp','rice','lemon','tomato','feta']),/奶酪/);
-assert.match(validate(['salmon','rice','lemon']),/4–8/);
+assert.match(validate(['salmon','rice','lemon']),/蔬菜/);
 const a=nutrition(withBase(selected(presets[0].ids)));assert(Math.abs(a.kcal-686.2)<.001,'salmon preset energy');
 assert(makeRecipe(selected(presets[1].ids),1).safety.includes('74℃'));
 assert(makeRecipe(selected(presets[2].ids),1).safety.includes('干鹰嘴豆'));
@@ -22,14 +22,17 @@ assert.deepEqual(weightRange(baseOil),[1,40]);
 assert.equal(withBase(selected(presets[0].ids)).filter(i=>i.id==='olive').length,1);
 const fourVeg=['broccoli','zucchini','tomato','redonion','chicken','oats','lemon','walnut'];
 assert.equal(validate(fourVeg),null);
-assert.match(makeRecipe(selected(fourVeg),1).steps[2],/分批/);
+assert.match(makeRecipe(selected(fourVeg),1).steps[2],/烤箱/);
 assert(!makeRecipe(selected(presets[0].ids),1).steps[0].includes('红洋葱'));
 assert(!makeRecipe(selected(presets[0].ids),1).steps[2].includes('红洋葱'));
 assert(!makeRecipe(selected(presets[0].ids),1).steps[2].includes('茄子'));
 assert(makeRecipe(selected(fourVeg),1).steps[0].includes('红洋葱切丝'));
 const onionOnly=makeRecipe(selected(['redonion','chickpea','oats','lemon']),1);assert(onionOnly.steps[0].includes('红洋葱切丝。'));assert(!onionOnly.steps[0].includes('其余蔬菜'));assert(onionOnly.steps[2].includes('红洋葱下锅'));
 assert.match(makeRecipe(selected(fourVeg),1).steps[1],/燕麦/);
-assert.match(validate(['broccoli','zucchini','tomato','redonion','pepper','chicken','oats','lemon']),/4–8|1–4/);
+assert.equal(validate(['broccoli','zucchini','eggplant','tomato','pepper','mushroom','redonion','chicken','oats','lemon','walnut']),null);
+assert.match(makeRecipe(selected(['broccoli','zucchini','eggplant','tomato','pepper','mushroom','redonion','chicken','oats','lemon','walnut']),1).steps[2],/分到两盘/);
+assert.equal(foodData.egg.fdcId,171287);
+assert.match(makeRecipe(selected(presets.at(-1).ids),1).safety,/71℃/);
 assert.match(makeRecipe(selected(['tomato','shrimp','pasta','basil']),1).steps[4],/回锅/);
 const html=await readFile('dist/地中海料理搭配器.html','utf8');
 assert(html.includes('<style>')&&html.includes('<script>'));

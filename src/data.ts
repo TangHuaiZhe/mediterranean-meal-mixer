@@ -20,6 +20,7 @@ export const ingredients:Ingredient[] = [
  one('chicken','去骨鸡腿肉','protein',140),one('chickpea','熟鹰嘴豆','protein',140),
  one('whitebean','熟白芸豆','protein',140,'whitebean','采用无盐水煮白豆近似映射；具体芸豆品种可能不同。'),
  one('shrimp','虾仁','protein',140,'shrimp','采用生虾数据；已去壳可食部分按生重计。'),
+ one('egg','鸡蛋','protein',100,'egg','约 2 个大鸡蛋的去壳可食部分，按生重计；实际重量可调整。'),
  one('pasta','全麦意面（干）','grain',70),one('rice','糙米（干）','grain',65,'rice','采用长粒糙米；其他品种可能不同。'),
  one('bread','全麦面包','grain',70,'bread','不同品牌配方及钠含量可能差异较大。'),
  one('couscous','库斯库斯（干）','grain',70),one('oats','燕麦片（干）','grain',60),
@@ -33,7 +34,7 @@ export const ingredients:Ingredient[] = [
 ];
 export const baseOil=one('olive','橄榄油','extra',10,'oliveoil');
 export const groups:{id:Group;label:string;hint:string}[]=[
- {id:'veg',label:'蔬菜',hint:'选 1–4 种'}, {id:'protein',label:'蛋白质',hint:'选 1 种'},
+ {id:'veg',label:'蔬菜',hint:'任选，至少 1 种'}, {id:'protein',label:'蛋白质',hint:'选 1 种'},
  {id:'grain',label:'主食',hint:'选 1 种'}, {id:'flavor',label:'风味',hint:'选 1 种'},
  {id:'extra',label:'可选配料',hint:'可选 0–1 种'}
 ];
@@ -44,7 +45,8 @@ export const presets:Preset[]=[
  {name:'西西里鹰嘴豆意面',ids:['eggplant','tomato','chickpea','pasta','basil'],description:'豆类与全谷的植物餐'},
  {name:'蒜香虾仁库斯库斯',ids:['zucchini','tomato','shrimp','couscous','basil'],description:'快手海鲜主餐'},
  {name:'白芸豆烤蔬菜面包盘',ids:['pepper','mushroom','whitebean','bread','rosemary'],description:'暖蔬菜与豆类的轻食'},
- {name:'红洋葱香草燕麦碗',ids:['redonion','tomato','chickpea','oats','lemon'],description:'咸口燕麦与熟鹰嘴豆'}
+ {name:'红洋葱香草燕麦碗',ids:['redonion','tomato','chickpea','oats','lemon'],description:'咸口燕麦与熟鹰嘴豆'},
+ {name:'烤彩蔬鸡蛋面包盘',ids:['zucchini','tomato','pepper','redonion','egg','bread','basil'],description:'多种烤蔬菜配熟鸡蛋与全麦面包'}
 ];
 export const defaultTargets:Nutrients={kcal:2000,protein:50,fat:78,carbs:275,fiber:28,sodium:2300};
 export {foodData};
