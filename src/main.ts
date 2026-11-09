@@ -1,16 +1,17 @@
 import { ingredients, groups, presets, defaultTargets, baseOil, foodData, type Ingredient, type Nutrients } from './data';
 import { selected, withBase, validate, nutrition, mealType, makeRecipe, componentAmounts, weightRange } from './engine';
 import { generateAiSteps, type AiRecipeResult } from './ai';
+import { favoriteSignature, normalizeFavorites, normalizeGrams, type Favorite } from './favorites';
+import { FavoriteSync } from './favorite-sync';
+import { cloud, onSessionChange, sendLoginLink, signOut, listCloudFavorites, saveCloudFavorite, deleteCloudFavorite } from './cloud';
 
-type Favorite={ids:string[];grams:Record<string,number>};
 type State={ids:string[];servings:number;grams:Record<string,number>;targets:Nutrients;favorites:Favorite[]};
 const storageKey='mediterranean-mixer-v1';
 function readSaved():Partial<State>{try{return JSON.parse(localStorage.getItem(storageKey)||'{}')}catch{return {}}}
 const saved=readSaved();
-const normalizeGrams=(raw:unknown):Record<string,number>=>{const out:Record<string,number>={};if(!raw||typeof raw!=='object')return out;for(const [id,value] of Object.entries(raw)){const item=[...ingredients,baseOil].find(i=>i.id===id);if(!item)continue;const [min,max]=weightRange(item);if(typeof value==='number'&&Number.isInteger(value)&&value>=min&&value<=max)out[id]=value}return out};
-const favorites:Favorite[]=Array.isArray(saved.favorites)?saved.favorites.map((f:unknown)=>Array.isArray(f)?{ids:f.filter((id):id is string=>typeof id==='string'&&id!=='olive'),grams:{}}:f&&typeof f==='object'&&'ids' in f&&Array.isArray(f.ids)?{ids:f.ids.filter((id):id is string=>typeof id==='string'&&id!=='olive'),grams:normalizeGrams('grams' in f?f.grams:{})}:null).filter((f):f is Favorite=>!!f):[];
+const anonymousFavorites=normalizeFavorites(saved.favorites);
 const normalizeTargets=(raw:unknown):Nutrients=>{const out={...defaultTargets};if(raw&&typeof raw==='object')for(const key of Object.keys(out) as (keyof Nutrients)[]){const value=(raw as Partial<Nutrients>)[key];if(typeof value==='number'&&Number.isFinite(value)&&value>0&&value<=10000)out[key]=value}return out};
-const state:State={ids:[...presets[0].ids],servings:1,grams:normalizeGrams(saved.grams),targets:normalizeTargets(saved.targets),favorites};
+const state:State={ids:[...presets[0].ids],servings:1,grams:normalizeGrams(saved.grams),targets:normalizeTargets(saved.targets),favorites:[...anonymousFavorites]};
 const aiPage=location.protocol==='file:'||location.pathname.endsWith('/ai.html');
 const aiDraftKey='mediterranean-mixer-ai-draft';
 if(aiPage&&location.protocol!=='file:')try{const draft=JSON.parse(sessionStorage.getItem(aiDraftKey)||'null');sessionStorage.removeItem(aiDraftKey);if(draft&&Array.isArray(draft.ids)&&!validate(draft.ids)){state.ids=draft.ids;state.grams=normalizeGrams(draft.grams);if(Number.isInteger(draft.servings))state.servings=Math.max(1,Math.min(8,draft.servings))}}catch{}
@@ -18,7 +19,21 @@ let aiResult:AiRecipeResult|null=null,aiSignature='',aiCalls=0,aiPending=false;
 const $=(selector:string)=>document.querySelector(selector) as HTMLElement;
 const fmt=(n:number,d=0)=>n.toFixed(d).replace(/\.0$/,'');
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-function persist(){try{localStorage.setItem(storageKey,JSON.stringify({targets:state.targets,grams:state.grams,favorites:state.favorites}))}catch{$('#save-status').textContent='此浏览器未开放本地存储；本次会话仍可使用。'}}
+let activeUserId:string|null=null;
+const safeStore={getItem:(key:string)=>{try{return localStorage.getItem(key)}catch{return null}},setItem:(key:string,value:string)=>{try{localStorage.setItem(key,value)}catch{}}};
+const sync=cloud?new FavoriteSync(
+ {list:listCloudFavorites,add:saveCloudFavorite,delete:deleteCloudFavorite},
+ safeStore,
+ favorites=>{state.favorites=favorites;renderFavorites()},
+ message=>{$('#account-status').textContent=message}
+):null;
+function renderAccount(email=''){
+ const box=$('#account');
+ if(!cloud){box.innerHTML='<p class="helper">云端登录尚未配置。现在的收藏保存在本机；离线页面始终可用。</p>';return}
+ if(activeUserId){box.innerHTML=`<p class="helper">已登录：<strong data-clarity-mask="true">${esc(email)}</strong></p><div class="account-actions"><button type="button" id="sync-favorites" class="secondary">同步收藏</button><button type="button" id="sign-out" class="text-btn">退出登录</button></div>`;return}
+ box.innerHTML='<p class="helper">用邮箱接收登录链接，登录后可在设备间同步收藏。首次登录会自动创建账户。</p><form id="login-form" class="login-form"><label for="login-email">邮箱地址</label><input id="login-email" type="email" autocomplete="email" required data-clarity-mask="true" placeholder="name@example.com"><button class="secondary" type="submit">发送登录链接</button></form>';
+}
+function persist(){try{localStorage.setItem(storageKey,JSON.stringify({targets:state.targets,grams:state.grams,favorites:anonymousFavorites}))}catch{$('#save-status').textContent='此浏览器未开放本地存储；本次会话仍可使用。'}}
 function componentText(item:Ingredient,multiplier=1){return item.components.length>1?componentAmounts(item).map(c=>`${foodData[c.key].name} ${fmt(c.grams*multiplier,1)} g`).join('、'):''}
 function icon(){return `<svg class="plate-art" viewBox="0 0 460 300" role="img" aria-label="餐盘示意插图"><defs><radialGradient id="plate"><stop stop-color="#fff"/><stop offset="1" stop-color="#e6e3dc"/></radialGradient><filter id="shadow"><feGaussianBlur stdDeviation="8"/></filter></defs><ellipse cx="232" cy="262" rx="188" ry="20" fill="#b2b9a6" opacity=".3" filter="url(#shadow)"/><ellipse cx="230" cy="148" rx="190" ry="134" fill="#d8d7ce"/><ellipse cx="230" cy="142" rx="177" ry="124" fill="url(#plate)"/><ellipse cx="230" cy="142" rx="155" ry="104" fill="#f9f8f3"/><path d="M90 135C125 76 176 53 222 70c-37 40-28 83-4 123-57 26-105 9-128-58Z" fill="#c6a377"/><path d="M123 93c32-28 63-34 90-20-22 25-30 45-26 66-26 3-47-7-64-46Z" fill="#f0dba6"/><path d="M250 58c65-9 113 24 122 79-28 18-52 16-77 0-25-17-41-42-45-79Z" fill="#e57759"/><path d="M268 67c32-6 65 7 83 31-30 0-53-8-83-31Z" fill="#f3ad8a"/><g fill="#637d4e"><circle cx="131" cy="186" r="30"/><circle cx="165" cy="200" r="22"/><circle cx="99" cy="174" r="18"/><circle cx="309" cy="208" r="24"/><circle cx="339" cy="185" r="21"/></g><g fill="#b7bd6c"><circle cx="122" cy="180" r="12"/><circle cx="151" cy="196" r="10"/><circle cx="320" cy="203" r="10"/></g><g fill="#d85b46"><circle cx="230" cy="218" r="15"/><circle cx="257" cy="207" r="13"/><circle cx="290" cy="225" r="14"/></g><g fill="#f3e9bd"><circle cx="204" cy="219" r="7"/><circle cx="186" cy="205" r="7"/><circle cx="211" cy="190" r="7"/></g><path d="M207 40c12 14 26 19 42 18M89 224c20 19 42 26 68 27" stroke="#f6f3e6" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`}
 function render(){
@@ -48,7 +63,7 @@ function renderResult(items:ReturnType<typeof selected>,n:Nutrients,meal:ReturnT
  <div class="result-grid"><div class="recipe-pane"><div class="section-heading"><h3>食材清单</h3><span>以下为 ${state.servings} 人份</span></div><ul class="ingredient-list">${list}</ul><div class="section-heading"><h3>开始烹调</h3><span>${aiResult?'AI 辅助步骤':'按顺序操作'}</span></div>${aiResult?'<p class="ai-notice">以下步骤由 DeepSeek 改写，请核对食材、火候和下方食安提示。<button type="button" id="restore-steps" class="text-btn">恢复本地步骤</button></p>':''}<ol class="steps">${(aiResult?.steps??recipe.steps).map(s=>`<li>${esc(s)}</li>`).join('')}</ol><div class="method-box"><h4>换用其他设备</h4>${recipe.pan?`<p><strong>平底锅：</strong>${recipe.pan}</p>`:''}<p><strong>蒸箱：</strong>${recipe.steam}出锅后拌入本餐橄榄油。</p><p><strong>空气炸锅：</strong>${recipe.airFryer}</p><p><strong>微波炉：</strong>${recipe.microwave}</p></div><div class="safety"><strong>食安提示</strong><p>${recipe.safety}</p></div></div>
  <aside class="nutrition-pane"><div class="section-heading"><h3>每份营养估算</h3><span>约值</span></div>${nutritionHtml}<p class="nutrition-note">按下方食品编号对应的每 100 g 数据和所填克数线性计算；复合风味按默认比例缩放。未计烹调损耗、额外盐油、品牌差异及近似品种映射误差。不是个体医疗或营养建议。</p><div class="meal-note"><strong>适合 ${meal.label}</strong><p>${meal.reason}</p></div></aside></div>
  <section class="shopping-section"><div class="section-heading"><h3>购物清单</h3><span>勾选仅在当前页面有效</span></div><div class="shop-list">${shopping}</div><button type="button" id="copy-list">复制购物清单</button></section><details class="source-section"><summary>查看每项食材的营养数据来源</summary><p>来源为美国农业部食品营养数据库的离线摘录。点击食品编号可在美国农业部网站按编号检索原始条目；复合风味按各组成食材加权。能量采用来源条目的 1008 或 2047 项。数值不是成品的实验室检测值。</p><div class="source-grid">${sourceHtml}</div></details>`;
- $('#favorite-btn')!.addEventListener('click',()=>{const snapshot:Favorite={ids:[...state.ids],grams:Object.fromEntries(items.map(i=>[i.id,i.grams]))};if(!state.favorites.some(f=>JSON.stringify(f)===JSON.stringify(snapshot))){state.favorites.unshift(snapshot);state.favorites=state.favorites.slice(0,12);persist();renderFavorites()}$('#save-status').textContent='已收藏当前组合及克数。'});
+ $('#favorite-btn')!.addEventListener('click',()=>{const snapshot:Favorite={ids:[...state.ids],grams:Object.fromEntries(items.map(i=>[i.id,i.grams]))};if(activeUserId&&sync){sync.add(snapshot)}else if(!state.favorites.some(f=>favoriteSignature(f)===favoriteSignature(snapshot))){anonymousFavorites.unshift(snapshot);anonymousFavorites.splice(100);state.favorites=[...anonymousFavorites];persist();renderFavorites()}$('#save-status').textContent='已收藏当前组合及克数。'});
  $('#print-btn')!.addEventListener('click',()=>window.print());
  $('#restore-steps')?.addEventListener('click',()=>{aiResult=null;render()});
  $('#reset-grams')!.addEventListener('click',()=>{state.grams={};persist();render()});
@@ -59,7 +74,7 @@ function renderFavorites(){const box=$('#favorites');box.innerHTML=state.favorit
 function toggle(id:string){const i=ingredients.find(x=>x.id===id)!;if(state.ids.includes(id)){state.ids=state.ids.filter(x=>x!==id)}else{const same=selected(state.ids).filter(x=>x.group===i.group);if(['protein','grain','flavor'].includes(i.group)){state.ids=state.ids.filter(x=>!same.some(y=>y.id===x))}else if(i.group==='extra'&&same.length>=1){state.ids=state.ids.filter(x=>!same.some(y=>y.id===x))}state.ids.push(id)}render()}
 $('#groups').addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-id]');if(b)toggle(b.dataset.id!)});
 $('#presets').addEventListener('click',e=>{const b=(e.target as HTMLElement).closest<HTMLButtonElement>('[data-preset]');if(b){state.ids=[...presets[Number(b.dataset.preset)].ids];state.grams={};persist();render();$('#result').scrollIntoView({behavior:'smooth',block:'start'})}});
-$('#favorites').addEventListener('click',e=>{const t=e.target as HTMLElement;const remove=t.closest<HTMLButtonElement>('[data-remove]');if(remove){state.favorites.splice(Number(remove.dataset.remove),1);persist();renderFavorites();return}const b=t.closest<HTMLButtonElement>('[data-favorite]');if(b){const f=state.favorites[Number(b.dataset.favorite)];state.ids=[...f.ids];state.grams={...f.grams};persist();render()}});
+$('#favorites').addEventListener('click',e=>{const t=e.target as HTMLElement;const remove=t.closest<HTMLButtonElement>('[data-remove]');if(remove){const favorite=state.favorites[Number(remove.dataset.remove)];if(!favorite)return;if(activeUserId&&sync)sync.remove(favorite);else{anonymousFavorites.splice(Number(remove.dataset.remove),1);state.favorites=[...anonymousFavorites];persist();renderFavorites()}return}const b=t.closest<HTMLButtonElement>('[data-favorite]');if(b){const f=state.favorites[Number(b.dataset.favorite)];state.ids=[...f.ids];state.grams={...f.grams};persist();render()}});
 $('#random').addEventListener('click',()=>{const p=presets[Math.floor(Math.random()*presets.length)];state.ids=[...p.ids];state.grams={};persist();render()});
 $('#reset').addEventListener('click',()=>{state.ids=[];state.servings=1;state.grams={};persist();render()});
 $('#generate').addEventListener('click',()=>{$('#result').scrollIntoView({behavior:'smooth',block:'start'})});
@@ -90,3 +105,27 @@ if(aiPage){
  $('#ai-link').addEventListener('click',()=>{try{sessionStorage.setItem(aiDraftKey,JSON.stringify({ids:state.ids,grams:state.grams,servings:state.servings}))}catch{}});
 }
 render();
+renderAccount();
+$('#account').addEventListener('submit',async e=>{
+ const form=(e.target as HTMLElement).closest<HTMLFormElement>('#login-form');if(!form)return;e.preventDefault();
+ const email=(form.querySelector('#login-email') as HTMLInputElement).value.trim();
+ const button=form.querySelector('button') as HTMLButtonElement;button.disabled=true;
+ $('#account-status').textContent='正在发送登录链接…';
+ try{await sendLoginLink(email);$('#account-status').textContent='登录链接已发送，请在同一浏览器打开邮件中的链接。'}
+ catch(error){$('#account-status').textContent=error instanceof Error?error.message:'发送失败，请稍后重试。'}
+ finally{button.disabled=false}
+});
+$('#account').addEventListener('click',async e=>{
+ const target=e.target as HTMLElement;
+ if(target.closest('#sync-favorites')){void sync?.sync();return}
+ if(target.closest('#sign-out')){try{await signOut()}catch(error){$('#account-status').textContent=error instanceof Error?error.message:'退出失败。'}}
+});
+onSessionChange(session=>{
+ const userId=session?.user.id??null;
+ if(userId===activeUserId){renderAccount(session?.user.email??'');return}
+ if(activeUserId)sync?.stop();
+ activeUserId=userId;
+ if(userId){renderAccount(session?.user.email??'');void sync?.start(userId,anonymousFavorites);if(anonymousFavorites.length){anonymousFavorites.splice(0);persist()}}
+ else{state.favorites=[...anonymousFavorites];renderFavorites();renderAccount();$('#account-status').textContent='已退出，当前显示本机收藏。'}
+});
+window.addEventListener('online',()=>{if(activeUserId)void sync?.sync()});

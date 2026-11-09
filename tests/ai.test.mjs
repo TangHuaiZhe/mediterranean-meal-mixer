@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { readFile } from 'node:fs/promises';
+import { runInNewContext } from 'node:vm';
 
 const bundle = await build({ entryPoints: ['src/ai.ts', 'src/data.ts'], bundle: true, format: 'esm', write: false, outdir: 'x' });
 const modules = {};
@@ -22,6 +23,17 @@ assert.throws(() => parseAiSteps({ choices: [{ finish_reason: 'length', message:
 const publicHtml = await readFile('docs/index.html', 'utf8');
 const aiHtml = await readFile('docs/ai.html', 'utf8');
 assert(publicHtml.includes('zawq522qjf'));
+const clarityScript = publicHtml.match(/<!-- clarity:start --><script[^>]*>([\s\S]*?)<\/script><!-- clarity:end -->/)?.[1];
+assert(clarityScript);
+function clarityLoads(search, hash) {
+  let loads = 0;
+  const document = { createElement: () => ({}), getElementsByTagName: () => [{ parentNode: { insertBefore: () => loads++ } }] };
+  runInNewContext(clarityScript, { location: { protocol: 'https:', hostname: 'tanghuaizhe.github.io', pathname: '/mediterranean-meal-mixer/', search, hash }, window: {}, document });
+  return loads;
+}
+assert.equal(clarityLoads('', ''), 1);
+assert.equal(clarityLoads('?code=one-time-code', ''), 0);
+assert.equal(clarityLoads('', '#access_token=one-time-token'), 0);
 assert(publicHtml.includes('ai-controls'));
 assert(!aiHtml.includes('zawq522qjf'));
 assert(!aiHtml.includes('clarity.ms/tag'));
