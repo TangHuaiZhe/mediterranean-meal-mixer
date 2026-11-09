@@ -34,8 +34,8 @@ export const ingredients:Ingredient[] = [
 ];
 export const baseOil=one('olive','橄榄油','extra',10,'oliveoil');
 export const groups:{id:Group;label:string;hint:string}[]=[
- {id:'veg',label:'蔬菜',hint:'任选，至少 1 种'}, {id:'protein',label:'蛋白质',hint:'选 1 种'},
- {id:'grain',label:'主食',hint:'选 1 种'}, {id:'flavor',label:'风味',hint:'选 1 种'},
+ {id:'veg',label:'蔬菜',hint:'任选，至少 1 种'}, {id:'protein',label:'蛋白质',hint:'可选 0–1 种'},
+ {id:'grain',label:'主食',hint:'可选 0–1 种'}, {id:'flavor',label:'风味',hint:'可选 0–1 种'},
  {id:'extra',label:'可选配料',hint:'可选 0–1 种'}
 ];
 export type Preset={name:string;ids:string[];description:string};
@@ -46,7 +46,8 @@ export const presets:Preset[]=[
  {name:'蒜香虾仁库斯库斯',ids:['zucchini','tomato','shrimp','couscous','basil'],description:'快手海鲜主餐'},
  {name:'白芸豆烤蔬菜面包盘',ids:['pepper','mushroom','whitebean','bread','rosemary'],description:'暖蔬菜与豆类的轻食'},
  {name:'红洋葱香草燕麦碗',ids:['redonion','tomato','chickpea','oats','lemon'],description:'咸口燕麦与熟鹰嘴豆'},
- {name:'烤彩蔬鸡蛋面包盘',ids:['zucchini','tomato','pepper','redonion','egg','bread','basil'],description:'多种烤蔬菜配熟鸡蛋与全麦面包'}
+ {name:'烤彩蔬鸡蛋面包盘',ids:['zucchini','tomato','pepper','redonion','egg','bread','basil'],description:'多种烤蔬菜配熟鸡蛋与全麦面包'},
+ {name:'橄榄油烤杂蔬',ids:['broccoli','zucchini','eggplant','tomato','pepper'],description:'只用蔬菜与基础橄榄油，做一盘配菜'}
 ];
 export const defaultTargets:Nutrients={kcal:2000,protein:50,fat:78,carbs:275,fiber:28,sodium:2300};
 export {foodData};

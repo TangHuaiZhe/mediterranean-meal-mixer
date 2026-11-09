@@ -7,9 +7,9 @@ export function weightRange(item:Ingredient):[number,number]{return item.id==='o
 export function validate(ids:string[]):string | null {
   const items=selected(ids), counts=(group:string)=>items.filter(i=>i.group===group).length;
   if(counts('veg')<1)return '请至少选择 1 种蔬菜。';
-  if(counts('protein')!==1)return '蛋白质请选择 1 种。';
-  if(counts('grain')!==1)return '主食请选择 1 种。';
-  if(counts('flavor')!==1)return '风味请选择 1 种。';
+  if(counts('protein')>1)return '蛋白质最多选择 1 种。';
+  if(counts('grain')>1)return '主食最多选择 1 种。';
+  if(counts('flavor')>1)return '风味最多选择 1 种。';
   if(counts('extra')>1)return '可选配料最多 1 种。';
   if(ids.includes('yogurt')&&ids.includes('salmon'))return '酸奶蒜香酱不建议与这款热烤三文鱼同烤；请选择柠檬欧芹等风味。';
   if(ids.includes('feta')&&ids.includes('shrimp'))return '这款虾仁搭配不加入菲达奶酪；可换其他配料。';
@@ -21,6 +21,10 @@ export function nutrition(items:Ingredient[]):Nutrients{
  return result;
 }
 export function mealType(n:Nutrients,items:Ingredient[]):{label:string;reason:string}{
+ const hasProtein=items.some(i=>i.group==='protein'),hasGrain=items.some(i=>i.group==='grain');
+ if(!hasProtein&&!hasGrain)return {label:'午餐或晚餐的配菜',reason:'这是一盘蔬菜，可以搭配午餐或晚餐；若作为完整一餐，按需要另配蛋白质和主食。营养占比只反映当前所选食材。'};
+ if(!hasProtein)return {label:'午餐或晚餐的一部分',reason:'已含蔬菜和主食，若作为完整一餐，可按需要另配蛋白质。营养占比只反映当前所选食材。'};
+ if(!hasGrain)return {label:'午餐或晚餐的一部分',reason:'已含蔬菜和蛋白质，若作为完整一餐，可按需要另配主食。营养占比只反映当前所选食材。'};
  const hasBread=items.some(i=>i.id==='bread');
  const hasEgg=items.some(i=>i.id==='egg'),hasOats=items.some(i=>i.id==='oats');
  if(hasEgg&&(hasBread||hasOats)&&n.kcal<650)return {label:'早餐或午餐',reason:'鸡蛋搭配全谷主食和蔬菜，适合作为较充足的早餐或午餐。'};
@@ -29,12 +33,12 @@ export function mealType(n:Nutrients,items:Ingredient[]):{label:string;reason:st
  return {label:'午餐或晚餐',reason:'含蔬菜、蛋白质和全谷主食，结构适合一顿正餐。'};
 }
 export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=baseOil){
- const p=items.find(i=>i.group==='protein')!,grain=items.find(i=>i.group==='grain')!,flavor=items.find(i=>i.group==='flavor')!;
+ const p=items.find(i=>i.group==='protein'),grain=items.find(i=>i.group==='grain'),flavor=items.find(i=>i.group==='flavor');
  const veg=items.filter(i=>i.group==='veg'),extras=items.filter(i=>i.group==='extra');
- const roastMode=veg.length>=3;
+ const roastMode=veg.length>=3||(!p&&!grain);
  const oilGrams=oil.grams*servings;
  const cut=veg.some(i=>i.id==='redonion')?(veg.length>1?'红洋葱切丝，其余蔬菜切成约 2 cm 块。':'红洋葱切丝。'):'蔬菜切成约 2 cm 块。';
- const prep=`洗净并沥干 ${veg.map(i=>i.name).join('、')}；${cut}${p.id==='chickpea'||p.id==='whitebean'?'豆类使用已彻底煮熟、沥干的成品。':p.id==='egg'?'鸡蛋单独打入碗中，接触生蛋的器具与熟食分开。':'生鲜蛋白质单独处理，生熟器具分开。'}`;
+ const prep=`洗净并沥干 ${veg.map(i=>i.name).join('、')}；${cut}${!p?'':p.id==='chickpea'||p.id==='whitebean'?'豆类使用已彻底煮熟、沥干的成品。':p.id==='egg'?'鸡蛋单独打入碗中，接触生蛋的器具与熟食分开。':'生鲜蛋白质单独处理，生熟器具分开。'}`;
  const grainSteps:Record<string,string>={
   oats:'燕麦片加约 3 倍重量的水，小锅煮约 5–8 分钟并搅拌，至软稠；做成咸口燕麦底。',
   bulgur:'布格麦加约 2 倍重量的沸水，加盖焖约 12–15 分钟，拨松并确认软熟。',
@@ -64,14 +68,14 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
   whitebean:'蔬菜烤熟后拌入已煮熟的白芸豆，回炉约 3–5 分钟至热透。',
   egg:'蔬菜烤制时，鸡蛋另在平底锅中小火炒至蛋液完全凝固；生熟器具分开。'
  };
- const sauce=flavor.id==='yogurt'?'酸奶蒜香酱保持冷藏，装盘后再淋，不与生肉接触。':`${flavor.name}在关火后拌入；${flavor.id==='lemon'?'柠檬汁与欧芹':'鲜香草和调味料'}后加更合适。`;
+ const sauce=!flavor?'':flavor.id==='yogurt'?'酸奶蒜香酱保持冷藏，装盘后再淋，不与生肉接触。':`${flavor.name}在关火后拌入；${flavor.id==='lemon'?'柠檬汁与欧芹':'鲜香草和调味料'}后加更合适。`;
  const extra=extras.length?`最后加入${extras.map(i=>i.name).join('、')}。`:'';
- const finish=grain.id==='pasta'?'将意面、蔬菜和蛋白质回锅，按需要加少量预留面汤拌匀。':'把主食、蔬菜和蛋白质装盘。';
- const steps=[prep,grainSteps[grain.id],roastMode?ovenVegStep:vegStep,roastMode?roastedProteinSteps[p.id]:proteinSteps[p.id],`${finish}${sauce}${extra} 即可食用。`];
- const steam=p.id==='chicken'?'鸡腿肉 100℃ 蒸约 18–25 分钟，中心 74℃；蔬菜另蒸 6–10 分钟。':p.id==='salmon'?'鱼 100℃ 蒸约 8–12 分钟，中心 63℃；蔬菜另蒸 6–10 分钟。':p.id==='shrimp'?'虾仁 100℃ 蒸约 5–8 分钟，至肉质呈珍珠白且不透明；蔬菜另蒸 6–10 分钟。':p.id==='egg'?'鸡蛋可在耐热容器中以 100℃ 蒸至完全凝固，蛋料理中心达到 71℃；蔬菜另蒸 6–10 分钟。':'熟豆类与蔬菜 100℃ 蒸约 6–10 分钟，至热透。';
- const pan=roastMode?`蔬菜分批按平底锅步骤翻炒：${vegStep}${proteinSteps[p.id]}`:undefined;
- const airFryer=`蔬菜拌入 ${oilGrams} g 橄榄油，空气炸锅 180℃ 约 10–15 分钟，中途翻动；蔬菜多时分批。${p.id==='chicken'?'鸡腿肉另以 180℃ 约 16–22 分钟，中途翻面，中心 74℃。':p.id==='salmon'?'三文鱼另以 180℃ 约 10–14 分钟，中心 63℃。':p.id==='shrimp'?'虾仁另以 180℃ 约 6–9 分钟，至肉质呈珍珠白且不透明。':p.id==='egg'?'鸡蛋另用平底锅炒至完全凝固。':'熟豆类在蔬菜出锅后拌入并加热至热透。'}主食仍按上方锅煮步骤准备。`;
- const microwave=p.id==='chicken'||p.id==='salmon'||p.id==='shrimp'||p.id==='egg'?'微波炉更适合加热蔬菜和已煮熟主食：加盖留缝，以约 800 W 加热 2–4 分钟，中途翻拌；生鲜鱼禽和鸡蛋建议按锅或蒸箱方案烹调并确认熟透。加热后拌入本餐橄榄油。':'熟豆类、蔬菜和已煮熟主食加盖留缝，以约 800 W 加热 2–4 分钟，中途翻拌，静置 1 分钟并确认热透；加热后拌入本餐橄榄油。';
- const safety=p.id==='chicken'?'鸡肉中心须达到 74℃，用食物温度计测最厚处；生熟器具分开。':p.id==='salmon'?'鱼中心达到 63℃，用食物温度计确认；生熟器具分开。':p.id==='shrimp'?'虾仁煮至肉质呈珍珠白且不透明；生熟器具分开。':p.id==='egg'?'整蛋应煮至蛋黄与蛋白凝固；炒蛋、烤蛋等蛋料理中心达到 71℃。生熟器具分开。':'若从干鹰嘴豆或干芸豆开始，先按包装浸泡，换水后彻底煮熟；此处克数按熟豆计，不能把浸泡当作煮熟。';
- return {steps,steam,pan,airFryer,microwave,safety,time:grain.id==='rice'?'约 45–55 分钟':roastMode||p.id==='chicken'?'约 35–45 分钟':'约 25–35 分钟',servings};
+ const finish=grain?.id==='pasta'?`将意面、蔬菜${p?'和蛋白质':''}回锅，按需要加少量预留面汤拌匀。`:grain?`把主食、蔬菜${p?'和蛋白质':''}装盘。`:p?'把蔬菜和蛋白质装盘。':'把烤好的蔬菜装盘。';
+ const steps=[prep,...(grain?[grainSteps[grain.id]]:[]),roastMode?ovenVegStep:vegStep,...(p?[roastMode?roastedProteinSteps[p.id]:proteinSteps[p.id]]:[]),`${finish}${sauce}${extra}即可食用。`];
+ const steam=!p?'蔬菜以 100℃ 蒸约 6–10 分钟，至熟软。':p.id==='chicken'?'鸡腿肉 100℃ 蒸约 18–25 分钟，中心 74℃；蔬菜另蒸 6–10 分钟。':p.id==='salmon'?'鱼 100℃ 蒸约 8–12 分钟，中心 63℃；蔬菜另蒸 6–10 分钟。':p.id==='shrimp'?'虾仁 100℃ 蒸约 5–8 分钟，至肉质呈珍珠白且不透明；蔬菜另蒸 6–10 分钟。':p.id==='egg'?'鸡蛋可在耐热容器中以 100℃ 蒸至完全凝固，蛋料理中心达到 71℃；蔬菜另蒸 6–10 分钟。':'熟豆类与蔬菜 100℃ 蒸约 6–10 分钟，至热透。';
+ const pan=roastMode?`蔬菜分批翻炒：${vegStep}${p?proteinSteps[p.id]:''}`:undefined;
+ const airFryer=`蔬菜拌入 ${oilGrams} g 橄榄油，空气炸锅 180℃ 约 10–15 分钟，中途翻动；蔬菜多时分批。${!p?'':p.id==='chicken'?'鸡腿肉另以 180℃ 约 16–22 分钟，中途翻面，中心 74℃。':p.id==='salmon'?'三文鱼另以 180℃ 约 10–14 分钟，中心 63℃。':p.id==='shrimp'?'虾仁另以 180℃ 约 6–9 分钟，至肉质呈珍珠白且不透明。':p.id==='egg'?'鸡蛋另用平底锅炒至完全凝固。':'熟豆类在蔬菜出锅后拌入并加热至热透。'}${grain?'主食仍按上方步骤准备。':''}`;
+ const microwave=p&&['chicken','salmon','shrimp','egg'].includes(p.id)?'微波炉更适合加热蔬菜和已煮熟主食：加盖留缝，以约 800 W 加热 2–4 分钟，中途翻拌；生鲜鱼禽和鸡蛋建议按锅或蒸箱方案烹调并确认熟透。加热后拌入本餐橄榄油。':`蔬菜${p?'与熟豆类':''}${grain?'、已煮熟主食':''}加盖留缝，以约 800 W 加热 2–4 分钟，中途翻拌，静置 1 分钟并确认热透；加热后拌入本餐橄榄油。`;
+ const safety=!p?'蔬菜洗净；烤盘上铺成单层，避免拥挤导致受热不均。':p.id==='chicken'?'鸡肉中心须达到 74℃，用食物温度计测最厚处；生熟器具分开。':p.id==='salmon'?'鱼中心达到 63℃，用食物温度计确认；生熟器具分开。':p.id==='shrimp'?'虾仁煮至肉质呈珍珠白且不透明；生熟器具分开。':p.id==='egg'?'整蛋应煮至蛋黄与蛋白凝固；炒蛋、烤蛋等蛋料理中心达到 71℃。生熟器具分开。':'若从干鹰嘴豆或干芸豆开始，先按包装浸泡，换水后彻底煮熟；此处克数按熟豆计，不能把浸泡当作煮熟。';
+ return {steps,steam,pan,airFryer,microwave,safety,time:grain?.id==='rice'?'约 45–55 分钟':roastMode||p?.id==='chicken'?'约 35–45 分钟':'约 25–35 分钟',servings};
 }
