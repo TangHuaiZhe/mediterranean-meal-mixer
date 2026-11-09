@@ -30,7 +30,7 @@ function render(){
 }
 function renderResult(items:ReturnType<typeof selected>,n:Nutrients,meal:ReturnType<typeof mealType>|null,recipe:ReturnType<typeof makeRecipe>|null,err:string|null){
  if(err||!recipe||!meal){$('#result').innerHTML=`<div class="empty"><span class="empty-mark">✳</span><h2>餐盘还差一步</h2><p>${esc(err||'请选择食材')}</p></div>`;return}
- const p=items.find(i=>i.group==='protein')!,v=items.filter(i=>i.group==='veg').map(i=>i.name).join('与');
+ const p=items.find(i=>i.group==='protein')!,vegs=items.filter(i=>i.group==='veg').map(i=>i.name),v=vegs.length>2?'烤杂蔬':vegs.join('与');
  const title=`${items.find(i=>i.group==='flavor')!.name}·${p.name}${v?'配'+v:''}`;
  const fields:[keyof Nutrients,string,string,number][]=[['kcal','热量','千卡',0],['protein','蛋白质','克',1],['fat','脂肪','克',1],['carbs','碳水','克',1],['fiber','膳食纤维','克',1],['sodium','钠','毫克',0]];
  const nutritionHtml=fields.map(([k,label,unit,dec])=>{const pct=Math.round(n[k]/state.targets[k]*100);return `<div class="nutrient"><div><strong>${label}</strong><span>${fmt(n[k],dec)} ${unit} · 每日 ${pct}%</span></div><div class="bar"><i style="width:${Math.min(100,pct)}%"></i></div></div>`}).join('');

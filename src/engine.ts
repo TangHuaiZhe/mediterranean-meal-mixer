@@ -34,7 +34,7 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
  const roastMode=veg.length>=3;
  const oilGrams=oil.grams*servings;
  const cut=veg.some(i=>i.id==='redonion')?(veg.length>1?'红洋葱切丝，其余蔬菜切成约 2 cm 块。':'红洋葱切丝。'):'蔬菜切成约 2 cm 块。';
- const prep=`洗净并沥干 ${veg.map(i=>i.name).join('、')}；${cut}${p.id==='chickpea'||p.id==='whitebean'?'豆类使用已彻底煮熟、沥干的成品。':'生鲜蛋白质单独处理，生熟器具分开。'}`;
+ const prep=`洗净并沥干 ${veg.map(i=>i.name).join('、')}；${cut}${p.id==='chickpea'||p.id==='whitebean'?'豆类使用已彻底煮熟、沥干的成品。':p.id==='egg'?'鸡蛋单独打入碗中，接触生蛋的器具与熟食分开。':'生鲜蛋白质单独处理，生熟器具分开。'}`;
  const grainSteps:Record<string,string>={
   oats:'燕麦片加约 3 倍重量的水，小锅煮约 5–8 分钟并搅拌，至软稠；做成咸口燕麦底。',
   bulgur:'布格麦加约 2 倍重量的沸水，加盖焖约 12–15 分钟，拨松并确认软熟。',
@@ -64,7 +64,7 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
   whitebean:'蔬菜烤熟后拌入已煮熟的白芸豆，回炉约 3–5 分钟至热透。',
   egg:'蔬菜烤制时，鸡蛋另在平底锅中小火炒至蛋液完全凝固；生熟器具分开。'
  };
- const sauce=flavor.id==='yogurt'?'酸奶蒜香酱保持冷藏，装盘后再淋，不与生肉接触。':`${flavor.name}在关火后拌入；鲜香草和柠檬汁后加更合适。`;
+ const sauce=flavor.id==='yogurt'?'酸奶蒜香酱保持冷藏，装盘后再淋，不与生肉接触。':`${flavor.name}在关火后拌入；${flavor.id==='lemon'?'柠檬汁与欧芹':'鲜香草和调味料'}后加更合适。`;
  const extra=extras.length?`最后加入${extras.map(i=>i.name).join('、')}。`:'';
  const finish=grain.id==='pasta'?'将意面、蔬菜和蛋白质回锅，按需要加少量预留面汤拌匀。':'把主食、蔬菜和蛋白质装盘。';
  const steps=[prep,grainSteps[grain.id],roastMode?ovenVegStep:vegStep,roastMode?roastedProteinSteps[p.id]:proteinSteps[p.id],`${finish}${sauce}${extra} 即可食用。`];
