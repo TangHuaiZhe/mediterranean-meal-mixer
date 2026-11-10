@@ -46,7 +46,7 @@ export function parseAiSteps(raw: unknown, selectedItems: Ingredient[]): AiRecip
   for (const item of selectedItems) {
     if (item.group === 'veg' && !text.includes(item.name)) throw new Error(`AI 步骤遗漏了${item.name}，已保留本地步骤。`);
     if (item.group === 'protein' && !text.includes(item.name.replace('去骨', '').replace('熟', ''))) throw new Error(`AI 步骤遗漏了${item.name}，已保留本地步骤。`);
-    if (item.group === 'grain' && !text.includes(item.name.replace('（干）', ''))) throw new Error(`AI 步骤遗漏了${item.name}，已保留本地步骤。`);
+    if (item.group === 'grain' && !text.includes(item.name.replace(/（干）|（生）/g, ''))) throw new Error(`AI 步骤遗漏了${item.name}，已保留本地步骤。`);
   }
   for (const item of selectedItems) {
     if (item.group === 'protein' && item.id === 'chicken' && !text.includes('74℃')) throw new Error('AI 步骤遗漏了鸡肉安全温度，已保留本地步骤。');

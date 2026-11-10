@@ -25,6 +25,7 @@ export const ingredients:Ingredient[] = [
  one('bread','全麦面包','grain',70,'bread','不同品牌配方及钠含量可能差异较大。'),
  one('couscous','库斯库斯（干）','grain',70),one('oats','燕麦片（干）','grain',60),
  one('bulgur','布格麦（干）','grain',70),one('quinoa','藜麦（干）','grain',65),
+ one('purpleSweetPotato','紫薯（生）','grain',180,'purpleSweetPotato','按生紫薯可食部分称重；营养暂用普通生甘薯数据近似，紫薯品种、含水量和烹调损耗会影响实际数值。'),
  make('lemon','柠檬欧芹','flavor',[{key:'lemonjuice',baseGrams:20},{key:'parsley',baseGrams:5}]),
  make('basil','蒜香罗勒','flavor',[{key:'garlic',baseGrams:10},{key:'basil',baseGrams:5}]),
  make('rosemary','迷迭香黑胡椒','flavor',[{key:'rosemary',baseGrams:3},{key:'blackpepper',baseGrams:2}]),
@@ -46,6 +47,7 @@ export const presets:Preset[]=[
  {name:'蒜香虾仁库斯库斯',ids:['zucchini','tomato','shrimp','couscous','basil'],description:'快手海鲜主餐'},
  {name:'白芸豆烤蔬菜面包盘',ids:['pepper','mushroom','whitebean','bread','rosemary'],description:'暖蔬菜与豆类的轻食'},
  {name:'红洋葱香草燕麦碗',ids:['redonion','tomato','chickpea','oats','lemon'],description:'咸口燕麦与熟鹰嘴豆'},
+ {name:'紫薯鹰嘴豆烤蔬菜盘',ids:['zucchini','pepper','redonion','chickpea','purpleSweetPotato','lemon'],description:'蒸熟紫薯配烤蔬菜与熟鹰嘴豆'},
  {name:'烤彩蔬鸡蛋面包盘',ids:['zucchini','tomato','pepper','redonion','egg','bread','basil'],description:'多种烤蔬菜配熟鸡蛋与全麦面包'},
  {name:'橄榄油烤杂蔬',ids:['broccoli','zucchini','eggplant','tomato','pepper'],description:'只用蔬菜与基础橄榄油，做一盘配菜'}
 ];

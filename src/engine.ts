@@ -29,8 +29,8 @@ export function mealType(n:Nutrients,items:Ingredient[]):{label:string;reason:st
  const hasEgg=items.some(i=>i.id==='egg'),hasOats=items.some(i=>i.id==='oats');
  if(hasEgg&&(hasBread||hasOats)&&n.kcal<650)return {label:'早餐或午餐',reason:'鸡蛋搭配全谷主食和蔬菜，适合作为较充足的早餐或午餐。'};
  if(hasBread&&n.kcal<550)return {label:'早餐或午餐',reason:'面包搭配蛋白质和蔬菜，准备相对简便；热量适合较充足的早餐或轻午餐。'};
- if(n.kcal>=650)return {label:'午餐或晚餐',reason:'谷物与蛋白质的份量较完整，适合作为主餐；按当天活动量调整主食。'};
- return {label:'午餐或晚餐',reason:'含蔬菜、蛋白质和全谷主食，结构适合一顿正餐。'};
+ if(n.kcal>=650)return {label:'午餐或晚餐',reason:'主食与蛋白质的份量较完整，适合作为主餐；按当天活动量调整主食。'};
+ return {label:'午餐或晚餐',reason:'含蔬菜、蛋白质和主食，结构适合一顿正餐。'};
 }
 export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=baseOil){
  const p=items.find(i=>i.group==='protein'),grain=items.find(i=>i.group==='grain'),flavor=items.find(i=>i.group==='flavor');
@@ -51,7 +51,8 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
   pasta:`将全麦意面 ${grainGrams} g 放入沸水，按包装指示煮熟（通常约 8–12 分钟）；留约 30 ml 面汤后沥干。`,
   rice:`将糙米 ${grainGrams} g 洗净，加入约 1.8 倍体积的水，电饭煲或小锅煮约 30–40 分钟，焖 10 分钟。`,
   couscous:`将库斯库斯 ${grainGrams} g 加入等体积沸水，盖住焖 5–7 分钟后用叉拨松。`,
-  bread:`将全麦面包 ${grainGrams} g 放入平底锅，小火烘约 2–4 分钟，翻面至微脆。`
+  bread:`将全麦面包 ${grainGrams} g 放入平底锅，小火烘约 2–4 分钟，翻面至微脆。`,
+  purpleSweetPotato:`将紫薯洗净，去除坏损部分，按生重称取可食部分 ${grainGrams} g，切成约 2 cm 小块；放入蒸箱以 100℃ 蒸约 15–25 分钟，或放入沸水煮约 12–20 分钟，至筷子能轻松插入后沥干。可在烤蔬菜时同时蒸煮。`
  };
  const panFirst=veg.filter(i=>['eggplant','zucchini','pepper','redonion'].includes(i.id));
  const panLast=veg.filter(i=>['broccoli','tomato','mushroom'].includes(i.id));
@@ -79,7 +80,7 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
  };
  const sauce=!flavor?'':flavor.id==='yogurt'?`将${flavorParts[0]}与切碎的${flavorParts[1]}拌匀，保持冷藏；装盘后淋上，不要让酱料接触生肉。`:flavor.id==='basil'?`关火后拌入${flavorParts[1]}。`:`关火后拌入${flavorParts.join('、')}。`;
  const extra=extras.length?`最后加入${named(extras)}。`:'';
- const grainName=grain?.name.replace('（干）','');
+ const grainName=grain?.name.replace(/（干）|（生）/g,'');
  const finish=grain?.id==='pasta'?`将煮熟的意面、${vegNames}${p?`、${p.name}`:''}放回锅中，按需要加少量预留面汤拌匀。`:`将${grainName?`${grainName}、`:''}${vegNames}${p?`、${p.name}`:''}装盘。`;
  const steps=[prep,...(grain?[grainSteps[grain.id]]:[]),roastMode?ovenVegStep:vegStep,...(p?[roastMode?roastedProteinSteps[p.id]:proteinSteps[p.id]]:[]),`${finish}${sauce}${extra}即可食用。`];
  const steam=!p?'蔬菜以 100℃ 蒸约 6–10 分钟，至熟软。':p.id==='chicken'?'鸡腿肉 100℃ 蒸约 18–25 分钟，中心 74℃；蔬菜另蒸 6–10 分钟。':p.id==='salmon'?'鱼 100℃ 蒸约 8–12 分钟，中心 63℃；蔬菜另蒸 6–10 分钟。':p.id==='shrimp'?'虾仁 100℃ 蒸约 5–8 分钟，至肉质呈珍珠白且不透明；蔬菜另蒸 6–10 分钟。':p.id==='egg'?'鸡蛋可在耐热容器中以 100℃ 蒸至完全凝固，蛋料理中心达到 71℃；蔬菜另蒸 6–10 分钟。':'熟豆类与蔬菜 100℃ 蒸约 6–10 分钟，至热透。';
@@ -87,5 +88,5 @@ export function makeRecipe(items:Ingredient[], servings:number, oil:Ingredient=b
  const airFryer=`将 ${named(veg)} 拌入 ${oilGrams} g 橄榄油，空气炸锅 180℃ 约 10–15 分钟，中途翻动；蔬菜多时分批。${!p?'':p.id==='chicken'?'鸡腿肉另以 180℃ 约 16–22 分钟，中途翻面，中心 74℃。':p.id==='salmon'?'三文鱼另以 180℃ 约 10–14 分钟，中心 63℃。':p.id==='shrimp'?'虾仁另以 180℃ 约 6–9 分钟，至肉质呈珍珠白且不透明。':p.id==='egg'?'鸡蛋另用平底锅炒至完全凝固。':'熟豆类在蔬菜出锅后拌入并加热至热透。'}${grain?'主食仍按上方步骤准备。':''}`;
  const microwave=p&&['chicken','salmon','shrimp','egg'].includes(p.id)?'微波炉更适合加热蔬菜和已煮熟主食：加盖留缝，以约 800 W 加热 2–4 分钟，中途翻拌；生鲜鱼禽和鸡蛋建议按锅或蒸箱方案烹调并确认熟透。加热后拌入本餐橄榄油。':`蔬菜${p?'与熟豆类':''}${grain?'、已煮熟主食':''}加盖留缝，以约 800 W 分批加热，每次 2–4 分钟，中途翻拌；按份量重复至熟软或热透，静置 1 分钟。加热后拌入本餐橄榄油。`;
  const safety=!p?'蔬菜洗净；烤盘上铺成单层，避免拥挤导致受热不均。':p.id==='chicken'?'鸡肉中心须达到 74℃，用食物温度计测最厚处；生熟器具分开。':p.id==='salmon'?'鱼中心达到 63℃，用食物温度计确认；生熟器具分开。':p.id==='shrimp'?'虾仁煮至肉质呈珍珠白且不透明；生熟器具分开。':p.id==='egg'?'整蛋应煮至蛋黄与蛋白凝固；炒蛋、烤蛋等蛋料理中心达到 71℃。生熟器具分开。':'若从干鹰嘴豆或干芸豆开始，先按包装浸泡，换水后彻底煮熟；此处克数按熟豆计，不能把浸泡当作煮熟。';
- return {steps,steam,pan,airFryer,microwave,safety,time:grain?.id==='rice'?'约 45–55 分钟':roastMode||p?.id==='chicken'?'约 35–45 分钟':'约 25–35 分钟',servings};
+ return {steps,steam:grain?.id==='purpleSweetPotato'?`${steam}紫薯另切约 2 cm 块，以 100℃ 蒸约 15–25 分钟，至筷子能轻松插入。`:steam,pan,airFryer,microwave,safety,time:grain?.id==='rice'?'约 45–55 分钟':roastMode||p?.id==='chicken'?'约 35–45 分钟':'约 25–35 分钟',servings};
 }

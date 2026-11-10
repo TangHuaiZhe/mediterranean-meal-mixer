@@ -7,7 +7,7 @@ parser.add_argument('--foundation',type=Path,required=True,help='Foundation Food
 parser.add_argument('--output',type=Path,default=Path('src/fooddata.ts'))
 args=parser.parse_args()
 records=[
- ('broccoli',747447,'西兰花'),('zucchini',169291,'西葫芦'),('eggplant',169228,'茄子'),('tomato',321360,'葡萄番茄'),('pepper',170108,'红甜椒'),('mushroom',169251,'白蘑菇'),('redonion',790577,'红洋葱'),('salmon',175167,'大西洋养殖三文鱼'),('chicken',2646171,'去骨去皮鸡腿肉'),('chickpea',173757,'熟鹰嘴豆'),('whitebean',175203,'熟白豆'),('shrimp',175179,'生虾'),('egg',171287,'生全蛋'),('pasta',169738,'全麦意面'),('rice',169703,'长粒糙米'),('bread',172688,'全麦面包'),('couscous',169699,'库斯库斯'),('oats',173904,'普通即食燕麦片'),('bulgur',170688,'布格麦'),('quinoa',168874,'藜麦'),('lemonjuice',167747,'柠檬汁'),('parsley',170416,'欧芹'),('garlic',169230,'大蒜'),('basil',172232,'罗勒'),('rosemary',173473,'迷迭香'),('blackpepper',170931,'黑胡椒'),('plainyogurt',171284,'原味全脂酸奶'),('olives',169094,'罐装熟黑橄榄'),('feta',173420,'菲达奶酪'),('walnut',170187,'核桃'),('oliveoil',171413,'橄榄油')]
+ ('broccoli',747447,'西兰花'),('zucchini',169291,'西葫芦'),('eggplant',169228,'茄子'),('tomato',321360,'葡萄番茄'),('pepper',170108,'红甜椒'),('mushroom',169251,'白蘑菇'),('redonion',790577,'红洋葱'),('salmon',175167,'大西洋养殖三文鱼'),('chicken',2646171,'去骨去皮鸡腿肉'),('chickpea',173757,'熟鹰嘴豆'),('whitebean',175203,'熟白豆'),('shrimp',175179,'生虾'),('egg',171287,'生全蛋'),('pasta',169738,'全麦意面'),('rice',169703,'长粒糙米'),('bread',172688,'全麦面包'),('couscous',169699,'库斯库斯'),('oats',173904,'普通即食燕麦片'),('bulgur',170688,'布格麦'),('quinoa',168874,'藜麦'),('purpleSweetPotato',168482,'生甘薯（紫薯近似值）'),('lemonjuice',167747,'柠檬汁'),('parsley',170416,'欧芹'),('garlic',169230,'大蒜'),('basil',172232,'罗勒'),('rosemary',173473,'迷迭香'),('blackpepper',170931,'黑胡椒'),('plainyogurt',171284,'原味全脂酸奶'),('olives',169094,'罐装熟黑橄榄'),('feta',173420,'菲达奶酪'),('walnut',170187,'核桃'),('oliveoil',171413,'橄榄油')]
 needed={id for _,id,_ in records}
 sr={}
 with args.sr.open('rb') as f:
@@ -35,6 +35,7 @@ for key,id,cn in records:
  vals={k:values[k] for k in ('kcal','protein','fat','carbs','fiber','sodium')}
  obj={'fdcId':id,'name':cn,'description':food['description'],'dataType':source,'release':release,'energyNutrientId':e,'nutrients':vals}
  if missing:obj['assumption']='膳食纤维源条目未列出；动物性食材按 0 g 处理。'
+ if key=='purpleSweetPotato':obj['assumption']='普通生甘薯数据近似紫薯；品种、含水量和烹调后重量可能不同。'
  output.append((key,obj))
 header='''// 从 USDA FoodData Central 官方下载文件选取；数据文件与映射方法见 README。\n// 所有营养值均为每 100 g，可追溯至 fdcId；运行时无需网络。\nimport type { Nutrients } from './data';\nexport type FoodRecord={fdcId:number;name:string;description:string;dataType:'Foundation Foods'|'SR Legacy';release:string;energyNutrientId:number;nutrients:Nutrients;assumption?:string};\nexport const foodData:Record<string,FoodRecord>={\n'''
 body=''.join(f"  {key}: {json.dumps(obj,ensure_ascii=False,separators=(',',':'))},\n" for key,obj in output)
